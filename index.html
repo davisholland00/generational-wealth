@@ -2893,12 +2893,19 @@ main{padding-bottom:150px}
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
+  var metaName='';
+  function syncDisplayName(nm){
+    nm=(nm||'').trim().slice(0,40);
+    if(!sb||!nm||nm===metaName)return;
+    metaName=nm;
+    sb.auth.updateUser({data:{name:nm,full_name:nm,display_name:nm}}).then(function(){},function(){metaName=''});
+  }
   function meSaveName(){
     var nm=($('#meName').value||'').trim().slice(0,40);
     if(!nm){meMsg('#meNameMsg','Enter a name.');return}
     if(!S)return;
     S.name=nm;profileName=nm.split(' ')[0];
-    if(sb)sb.auth.updateUser({data:{name:nm}}).then(function(){},function(){});
+    syncDisplayName(nm);
     persist();render();
     meMsg('#meNameMsg','Name saved.',true);
   }
@@ -3001,6 +3008,8 @@ main{padding-bottom:150px}
         if(!S)S=sample();
       }
       render();
+      metaName=md.display_name||'';
+      if(S&&!S.sample&&S.name)syncDisplayName(S.name);
       setStatus(ref?'Saved to your account':'Could not reach your account. Changes stay on this device for now.');
       if(S&&S.sample&&!wizDone())openWiz();
     });
