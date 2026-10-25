@@ -694,6 +694,14 @@ li.dim .nm,li.dim .amt{color:var(--muted)}
     </div>
     <div id="meLook"></div>
     <div class="field"><label>App lock (Face ID or PIN)</label><div id="meLock"></div></div>
+    <div class="field"><label>Your data</label>
+      <button type="button" class="btn" data-action="me-export">Download my data</button>
+      <button type="button" id="meDelStart" class="btn danger" data-action="me-del-start">Delete my account</button>
+      <div id="meDelBox" hidden class="deletebox"><p class="sec-sub">This permanently deletes your account and everything in it. It cannot be undone. Type <b>DELETE</b> to confirm.</p>
+        <input id="meDelText" autocomplete="off" autocapitalize="characters" aria-label="Type DELETE to confirm">
+        <div class="swrow"><button type="button" class="btn danger" data-action="me-del-go">Delete everything</button><button type="button" class="link-btn" data-action="me-del-cancel">Cancel</button></div></div>
+      <p id="meDataMsg" class="auth-msg" role="status"></p>
+    </div>
     <div class="field"><label for="mePass">New password</label><input id="mePass" type="password" autocomplete="new-password" placeholder="8+ characters"></div>
     <div class="field"><label for="mePass2">Type it again</label><input id="mePass2" type="password" autocomplete="new-password"></div>
     <p id="mePassMsg" class="auth-msg" role="status"></p>
@@ -773,6 +781,8 @@ main{padding-bottom:150px}
 .hlchk input,.authbox .hlchk input,#meSheet .hlchk input{width:22px;height:22px;min-height:0;padding:0;flex:none;accent-color:var(--accent)}
 .lockpin{width:100%;min-width:0;box-sizing:border-box;text-align:center;font-size:28px;letter-spacing:.4em;min-height:56px;border-radius:12px}
 #meLock{display:grid;gap:10px}
+.btn.danger{color:#B42318;border-color:#B42318;background:transparent}
+.deletebox{display:grid;gap:8px;padding:12px;border:1px solid #B42318;border-radius:10px}
 #meSheet select{min-height:44px;border:1px solid var(--line);border-radius:9px;background:var(--bg);padding:0 10px;width:100%}
 </style>
 <script>
@@ -2517,6 +2527,10 @@ main{padding-bottom:150px}
       else if(a==='look-text'){lookSet('text',el.getAttribute('data-v')||'')}
       else if(a==='signout'){gwSignOut()}
       else if(a==='my-account'){openMe()}
+      else if(a==='me-export'){meExport()}
+      else if(a==='me-del-start'){meDeleteStart()}
+      else if(a==='me-del-cancel'){meDeleteCancel()}
+      else if(a==='me-del-go'){meDeleteGo()}
       else if(a==='lock-on'){lockTurnOn()}
       else if(a==='lock-off'){lockTurnOff()}
       else if(a==='lock-edit'){lockEdit=true;lockRender()}
@@ -2823,7 +2837,7 @@ main{padding-bottom:150px}
       ['What we do not collect','The app does not connect to your bank or credit card accounts and does not ask for your bank login. If that ever changes, this policy will be updated first and you will be asked for your permission.'],
       ['How it is used','Only to run the app for you: to sign you in, save your budget, and show it back to you on any device where you sign in. We do not sell your information, share it for advertising, or show ads.'],
       ['Where it is stored','Your account and budget data are stored with Supabase, our database and sign-in provider. The website is hosted by Netlify. Each person can only read their own data. Your browser also keeps a small amount of data on your device, such as your sign-in session and display preferences.'],
-      ['Your choices','You can change your name, password and app colour any time in Account. To have your account and data deleted, or to ask what is stored, contact us using the address below.'],
+      ['Your choices','You can change your name, password and app colour, download a copy of your data, and permanently delete your account and data, all from Account in the app. You can also contact us using the address below.'],
       ['Security','We use industry-standard protections, including encrypted connections and per-user access rules. No system is perfectly secure, so please choose a strong, unique password.'],
       ['Children','Household Ledger is not directed to children under 13 and we do not knowingly collect their information.'],
       ['Changes','If this policy changes, the updated version will be posted here with a new date.']]},
@@ -2856,6 +2870,7 @@ main{padding-bottom:150px}
     $('#mePass').value='';$('#mePass2').value='';
     meMsg('#meNameMsg','');meMsg('#mePassMsg','');
     meSwatches();lookRefresh();lockEdit=false;lockRender();
+    meDeleteCancel();meDataMsg('');
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
@@ -2970,6 +2985,42 @@ main{padding-bottom:150px}
       setStatus(ref?'Saved to your account':'Could not reach your account. Changes stay on this device for now.');
       if(S&&S.sample&&!wizDone())openWiz();
     });
+  }
+
+
+  /* ---------- export my data and delete my account ---------- */
+  var delArmed=false;
+  function meDataMsg(t,ok){var el=$('#meDataMsg');if(el){el.textContent=t||'';el.className='auth-msg'+(ok?' ok':'')}}
+  function meExport(){
+    if(!S)return;
+    var out={app:'Household Ledger',exported:new Date().toISOString(),email:meEmail||'',data:S};
+    var txt=JSON.stringify(out,null,2),name='household-ledger-export.json';
+    try{
+      var file=new File([txt],name,{type:'application/json'});
+      if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){
+        navigator.share({files:[file],title:'Household Ledger export'}).then(function(){meDataMsg('Exported.',true)},function(){});
+        return;
+      }
+    }catch(e){}
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=name;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},3000);
+    meDataMsg('Saved '+name+'. Look in your Downloads.',true);
+  }
+  function meDeleteStart(){
+    delArmed=true;$('#meDelBox').hidden=false;$('#meDelStart').hidden=true;$('#meDelText').value='';meDataMsg('');
+    try{$('#meDelText').focus()}catch(e){}
+  }
+  function meDeleteCancel(){delArmed=false;$('#meDelBox').hidden=true;$('#meDelStart').hidden=false;meDataMsg('')}
+  function meDeleteGo(){
+    if(!sb||!delArmed)return;
+    if(($('#meDelText').value||'').trim().toUpperCase()!=='DELETE'){meDataMsg('Type DELETE to confirm.');return}
+    meDataMsg('Deleting...',true);
+    sb.rpc('delete_my_account').then(function(r){
+      if(r.error){meDataMsg('Could not delete the account right now. Please try again later or contact us.');return}
+      try{Object.keys(localStorage).forEach(function(k){if(k.indexOf('sb-')===0||k.indexOf('month-ahead-v1')===0||k.indexOf('gw-')===0||k.indexOf('hl-')===0)localStorage.removeItem(k)})}catch(e){}
+      sb.auth.signOut().then(function(){location.reload()},function(){location.reload()});
+    },function(){meDataMsg('Could not reach the server. Check your connection.')});
   }
 
   /* ---------- app lock (Face ID / fingerprint / PIN) and saved login preferences ---------- */
@@ -3087,6 +3138,7 @@ main{padding-bottom:150px}
   }
   function init(){
     S=sample();render();
+    try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js')}catch(e){}
     loginPrefsInit();
     if(lockCfg())showLock();
     if(!window.supabase||!window.supabase.createClient){showGate();gateMsg('Could not load the sign-in service. Check your connection and refresh.');return}
