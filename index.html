@@ -670,6 +670,22 @@ body.scrolllock{position:fixed;left:0;right:0;width:100%;overflow:hidden}
   </form>
 </div>
 
+<div id="ackScrim" class="scrim" hidden style="z-index:150">
+  <div id="ackSheet" class="sheet" role="dialog" aria-labelledby="ackTitle">
+    <h2 id="ackTitle">Before you start</h2>
+    <ul class="ack-list">
+      <li><b>Your information stays private.</b> Other users cannot see your budget, and we do not look at the numbers, names or notes you enter. It is stored for you with our cloud providers, and we only access it to keep the app working, to help you when you ask, or if the law requires it.</li>
+      <li><b>It is a planning tool, not advice.</b> Totals and balances are estimates based on what you type in and may differ from your bank or card statements. Nothing here is financial, tax or legal advice.</li>
+      <li><b>Not connected to your bank.</b> The app does not log in to your bank or card accounts.</li>
+      <li><b>Keep your password safe.</b> You are responsible for what happens under your account.</li>
+    </ul>
+    <p class="sec-sub">Read the full <button type="button" class="link-btn" data-action="legal-terms">Terms of Use</button> and <button type="button" class="link-btn" data-action="legal-privacy">Privacy Policy</button>.</p>
+    <label class="hlchk"><input type="checkbox" id="ackCheck"> I have read and agree to the Terms of Use and Privacy Policy</label>
+    <button type="button" id="ackGo" class="btn primary" disabled>I agree and continue</button>
+    <button type="button" id="ackNo" class="link-btn">I do not agree. Sign out</button>
+  </div>
+</div>
+<style>.ack-list{margin:0;padding-left:20px;display:grid;gap:10px;font-size:14px}.ack-list b{display:block}#ackGo[disabled]{opacity:.45}</style>
 <div id="legalScrim" class="scrim" hidden style="z-index:200">
   <div id="legalSheet" class="sheet" role="dialog" aria-labelledby="legalTitle">
     <h2 id="legalTitle"></h2>
@@ -2850,10 +2866,11 @@ main{padding-bottom:150px}
   function meFooter(){return '<button class="link-btn" data-action="my-account">Account</button> <button class="link-btn" data-action="signout">Sign out</button><br><button class="link-btn" data-action="legal-privacy">Privacy Policy</button> <button class="link-btn" data-action="legal-terms">Terms of Use</button><br><span class="legal-note">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.</span>'}
   var LEGAL={
     privacy:{title:'Privacy Policy',body:[
-      ['Last updated','October 23, 2026'],
+      ['Last updated','October 25, 2026'],
       ['Who we are','Household Ledger&trade; is a personal budgeting app owned and operated by '+OWNER+'.'],
       ['What we collect','Your email address and a password (which is stored in scrambled form by our sign-in provider, never as plain text), the name you choose to enter, and the budget information you type in: income, bills, subscriptions, account balances, credit card charges and spending categories.'],
       ['What we do not collect','The app does not connect to your bank or credit card accounts and does not ask for your bank login. If that ever changes, this policy will be updated first and you will be asked for your permission.'],
+      ['Who can see your information','Your budget information is tied to your account, and other users of the app cannot see it. We do not look at, review or use the individual numbers, names or notes you enter. Like most online services, the app is run on cloud providers (Supabase and Netlify) that store your data for us, so it is not hidden from the systems that run the app. We only access stored data when it is needed to keep the app working or fix a problem, when you ask us to help you, or when the law requires it. We will never sell it or use it for advertising.'],
       ['How it is used','Only to run the app for you: to sign you in, save your budget, and show it back to you on any device where you sign in. We do not sell your information, share it for advertising, or show ads.'],
       ['Where it is stored','Your account and budget data are stored with Supabase, our database and sign-in provider. The website is hosted by Netlify. Each person can only read their own data. Your browser also keeps a small amount of data on your device, such as your sign-in session and display preferences.'],
       ['Your choices','You can change your name, password and app colour, download a copy of your data, and permanently delete your account and data, all from Account in the app. You can also contact us using the address below.'],
@@ -3009,12 +3026,31 @@ main{padding-bottom:150px}
       }
       render();
       metaName=md.display_name||'';
+      ackCheck(session.user);
       if(S&&!S.sample&&S.name)syncDisplayName(S.name);
       setStatus(ref?'Saved to your account':'Could not reach your account. Changes stay on this device for now.');
       if(S&&S.sample&&!wizDone())openWiz();
     });
   }
 
+
+
+  /* ---------- one-time agreement (shown again if the terms version changes) ---------- */
+  var ACK_VER='2026-10-25',ackUid=null;
+  function ackKey(){return 'hl-ack-'+ackUid}
+  function ackCheck(user){
+    ackUid=user.id;
+    var md=user.user_metadata||{},done=md.terms_version===ACK_VER;
+    try{if(!done&&localStorage.getItem(ackKey())===ACK_VER)done=true}catch(e){}
+    if(done){try{localStorage.setItem(ackKey(),ACK_VER)}catch(e){}return}
+    $('#ackCheck').checked=false;$('#ackGo').disabled=true;$('#ackScrim').hidden=false;$('#ackSheet').scrollTop=0;
+  }
+  function ackAccept(){
+    if(!$('#ackCheck').checked)return;
+    try{localStorage.setItem(ackKey(),ACK_VER)}catch(e){}
+    $('#ackScrim').hidden=true;
+    if(sb)sb.auth.updateUser({data:{terms_version:ACK_VER,terms_accepted_at:new Date().toISOString()}}).then(function(){},function(){});
+  }
 
   /* ---------- export my data and delete my account ---------- */
   var delArmed=false;
@@ -3181,6 +3217,9 @@ main{padding-bottom:150px}
     $('#authSwitch').addEventListener('click',function(){gateMode=gateMode==='up'?'in':'up';gateRender()});
     $('#authForgot').addEventListener('click',gateForgot);
     $('#meColor').addEventListener('input',function(){meSetColor(this.value)});
+    $('#ackCheck').addEventListener('change',function(){$('#ackGo').disabled=!this.checked});
+    $('#ackGo').addEventListener('click',ackAccept);
+    $('#ackNo').addEventListener('click',gwSignOut);
     $('#lockForm').addEventListener('submit',function(e){e.preventDefault();lockTryPin()});
     $('#lockPin').addEventListener('input',function(){var c=lockCfg();if(c&&this.value.length>=(c.len||4)&&/^[0-9]+$/.test(this.value))lockTryPin()});
     $('#lockBio').addEventListener('click',function(){lockBio(false)});
