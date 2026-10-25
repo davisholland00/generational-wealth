@@ -693,6 +693,7 @@ li.dim .nm,li.dim .amt{color:var(--muted)}
       <div class="swrow"><label class="swcustom" for="meColor">Pick your own</label><input id="meColor" type="color" value="#1f4fd8" aria-label="Custom colour"><button type="button" class="link-btn" data-action="me-color-reset">Reset to blue</button></div>
     </div>
     <div id="meLook"></div>
+    <div class="field"><label>App lock (Face ID or PIN)</label><div id="meLock"></div></div>
     <div class="field"><label for="mePass">New password</label><input id="mePass" type="password" autocomplete="new-password" placeholder="8+ characters"></div>
     <div class="field"><label for="mePass2">Type it again</label><input id="mePass2" type="password" autocomplete="new-password"></div>
     <p id="mePassMsg" class="auth-msg" role="status"></p>
@@ -711,12 +712,24 @@ li.dim .nm,li.dim .amt{color:var(--muted)}
 #meSheet .field{display:grid;gap:4px}
 #meSheet .field label{font-size:13px;font-weight:600;color:var(--muted)}
 </style>
+<div id="lockScreen" class="authgate lockscreen" hidden style="z-index:300">
+  <form id="lockForm" class="authbox" novalidate>
+    <p class="auth-brand"><span class="wmk">Household <b>Ledger</b><sup>&trade;</sup></span><span class="hl-lines" aria-hidden="true"><i></i><i class="b"></i><i></i></span></p>
+    <h1>Enter your PIN</h1>
+    <input id="lockPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="PIN" class="lockpin">
+    <p id="lockMsg" class="auth-msg" role="alert"></p>
+    <button type="submit" class="btn primary">Unlock</button>
+    <button type="button" id="lockBio" class="btn" hidden>Use Face ID or fingerprint</button>
+    <p class="auth-links"><button type="button" id="lockForgot" class="link-btn">Forgot PIN? Sign out</button></p>
+  </form>
+</div>
 <div id="authGate" class="authgate" hidden>
   <form id="authForm" class="authbox" novalidate>
     <p class="auth-brand"><span class="wmk">Household <b>Ledger</b><sup>&trade;</sup></span><span class="hl-lines" aria-hidden="true"><i></i><i class="b"></i><i></i></span></p>
     <h1 id="authTitle">Sign in</h1>
-    <div id="authEmailRow" class="field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none"></div>
-    <div class="field"><label for="authPass">Password</label><input id="authPass" type="password" autocomplete="current-password" placeholder="Password"></div>
+    <div id="authEmailRow" class="field"><label for="authEmail">Email</label><input id="authEmail" name="email" type="email" autocomplete="username" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+    <div class="field"><label for="authPass">Password</label><input id="authPass" name="password" type="password" autocomplete="current-password" placeholder="Password">
+    <div id="authPrefs" class="auth-prefs"><label class="hlchk"><input type="checkbox" id="authKeep" checked> Keep me signed in on this device</label><label class="hlchk"><input type="checkbox" id="authRemEmail" checked> Remember my email</label></div></div>
     <p id="authMsg" class="auth-msg" role="alert"></p>
     <button id="authGo" type="submit" class="btn primary">Sign in</button>
     <p class="auth-links"><button type="button" id="authSwitch" class="link-btn">Create an account</button><button type="button" id="authForgot" class="link-btn">Forgot password?</button></p>
@@ -754,6 +767,13 @@ main{padding-bottom:150px}
 .auth-msg{margin:0;min-height:1.3em;color:#FF9C92;font-size:14px}
 .auth-msg.ok{color:rgba(255,255,255,.75)}
 .auth-links{display:flex;justify-content:space-between;gap:12px;margin:0}
+.auth-prefs{display:grid;gap:6px}
+.hlchk{display:flex;align-items:center;gap:10px;font-size:14px;text-transform:none;letter-spacing:0;font-weight:500}
+.authbox .hlchk{color:rgba(255,255,255,.9)}
+.hlchk input,.authbox .hlchk input,#meSheet .hlchk input{width:22px;height:22px;min-height:0;padding:0;flex:none;accent-color:var(--accent)}
+.lockpin{width:100%;min-width:0;box-sizing:border-box;text-align:center;font-size:28px;letter-spacing:.4em;min-height:56px;border-radius:12px}
+#meLock{display:grid;gap:10px}
+#meSheet select{min-height:44px;border:1px solid var(--line);border-radius:9px;background:var(--bg);padding:0 10px;width:100%}
 </style>
 <script>
 (function(){
@@ -2497,6 +2517,10 @@ main{padding-bottom:150px}
       else if(a==='look-text'){lookSet('text',el.getAttribute('data-v')||'')}
       else if(a==='signout'){gwSignOut()}
       else if(a==='my-account'){openMe()}
+      else if(a==='lock-on'){lockTurnOn()}
+      else if(a==='lock-off'){lockTurnOff()}
+      else if(a==='lock-edit'){lockEdit=true;lockRender()}
+      else if(a==='lock-edit-cancel'){lockEdit=false;lockRender()}
       else if(a==='me-close'){closeMe()}
       else if(a==='legal-privacy'){openLegal('privacy')}
       else if(a==='legal-terms'){openLegal('terms')}
@@ -2831,7 +2855,7 @@ main{padding-bottom:150px}
     $('#meName').value=(S&&S.name)||profileName||'';
     $('#mePass').value='';$('#mePass2').value='';
     meMsg('#meNameMsg','');meMsg('#mePassMsg','');
-    meSwatches();lookRefresh();
+    meSwatches();lookRefresh();lockEdit=false;lockRender();
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
@@ -2878,6 +2902,7 @@ main{padding-bottom:150px}
     $('#authEmailRow').hidden=rec;
     $('#authGo').textContent=rec?'Save password':(up?'Create account':'Sign in');
     $('#authSwitch').textContent=up?'I already have an account':'Create an account';
+    $('#authPrefs').hidden=rec;
     $('#authSwitch').hidden=rec;$('#authForgot').hidden=rec||up;
     $('#authPass').autocomplete=up||rec?'new-password':'current-password';
     $('#authPass').placeholder=rec?'New password (8+ characters)':'Password';
@@ -2902,13 +2927,14 @@ main{padding-bottom:150px}
     if(gateMode==='up'){
       sb.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname}}).then(function(r){
         if(r.error){gateMsg(r.error.message);return}
-        if(r.data&&r.data.session)return; /* signed in: the auth listener takes over */
+        if(r.data&&r.data.session){rememberLogin(em);return} /* signed in: the auth listener takes over */
         gateMsg('Check your email and tap the confirmation link, then come back and sign in.',true);
         gateMode='in';$('#authTitle').textContent='Sign in';$('#authGo').textContent='Sign in';$('#authSwitch').textContent='Create an account';$('#authForgot').hidden=false;
       });
     }else{
       sb.auth.signInWithPassword({email:em,password:pw}).then(function(r){
         if(r.error)gateMsg(r.error.message==='Invalid login credentials'?'That email and password do not match.':r.error.message);
+        else rememberLogin(em);
       });
     }
   }
@@ -2945,8 +2971,124 @@ main{padding-bottom:150px}
       if(S&&S.sample&&!wizDone())openWiz();
     });
   }
+
+  /* ---------- app lock (Face ID / fingerprint / PIN) and saved login preferences ---------- */
+  var LOCK_KEY='hl-lock',lockOpen=false,lockEdit=false,lockBioAvail=false,lockFails=0,lockUntil=0,lockHiddenAt=0;
+  function lockCfg(){try{var c=JSON.parse(localStorage.getItem(LOCK_KEY)||'null');return (c&&c.h&&c.salt)?c:null}catch(e){return null}}
+  function lockSave(c){try{if(c)localStorage.setItem(LOCK_KEY,JSON.stringify(c));else localStorage.removeItem(LOCK_KEY)}catch(e){}}
+  function b64e(buf){var a=new Uint8Array(buf),t='',i;for(i=0;i<a.length;i++)t+=String.fromCharCode(a[i]);return btoa(t).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+  function b64d(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length&3)t+='=';var b=atob(t),a=new Uint8Array(b.length),i;for(i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+  function rnd(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return a}
+  function pinHash(pin,salt){
+    var data=new TextEncoder().encode(salt+':'+pin);
+    return crypto.subtle.digest('SHA-256',data).then(function(h){return b64e(h)});
+  }
+  function lockMsg(t){var el=$('#lockMsg');if(el)el.textContent=t||''}
+  function showLock(){
+    var c=lockCfg();if(!c)return;
+    lockOpen=true;$('#lockScreen').hidden=false;
+    $('#lockBio').hidden=!c.cid;$('#lockPin').value='';lockMsg('');
+    $('#lockPin').setAttribute('maxlength',String(c.len||6));
+    setTimeout(function(){try{$('#lockPin').focus()}catch(e){}},50);
+    if(c.cid)lockBio(true);
+  }
+  function unlockApp(){lockOpen=false;lockFails=0;$('#lockScreen').hidden=true;$('#lockPin').value='';lockMsg('')}
+  function lockBio(quiet){
+    var c=lockCfg();if(!c||!c.cid||!navigator.credentials)return;
+    navigator.credentials.get({publicKey:{challenge:rnd(32),rpId:location.hostname,allowCredentials:[{type:'public-key',id:b64d(c.cid),transports:['internal']}],userVerification:'required',timeout:60000}})
+      .then(function(){unlockApp()},function(){if(!quiet)lockMsg('Face ID did not work. Enter your PIN.')});
+  }
+  function lockTryPin(){
+    var c=lockCfg();if(!c)return;
+    var now=Date.now();
+    if(now<lockUntil){lockMsg('Too many tries. Wait '+Math.ceil((lockUntil-now)/1000)+' seconds.');return}
+    var pin=($('#lockPin').value||'').trim();
+    if(pin.length<4)return;
+    pinHash(pin,c.salt).then(function(h){
+      if(h===c.h){unlockApp();return}
+      lockFails++;$('#lockPin').value='';
+      if(lockFails>=5){lockUntil=Date.now()+30000;lockFails=0;lockMsg('Too many tries. Wait 30 seconds.')}
+      else lockMsg('That PIN is not right.');
+    });
+  }
+  function lockForgot(){
+    lockSave(null);try{localStorage.removeItem('hl-keep')}catch(e){}
+    if(sb)sb.auth.signOut().then(function(){location.reload()},function(){location.reload()});else location.reload();
+  }
+  var LOCK_AFTER=[[0,'Right away'],[60000,'After 1 minute'],[300000,'After 5 minutes'],[900000,'After 15 minutes']];
+  function lockHtml(){
+    var c=lockCfg(),h='';
+    var sel='<div class="field"><label for="lockAfter">Ask for it again</label><select id="lockAfter">'+LOCK_AFTER.map(function(x){return '<option value="'+x[0]+'"'+((c?c.after:60000)===x[0]?' selected':'')+'>'+x[1]+'</option>'}).join('')+'</select></div>';
+    if(c&&!lockEdit){
+      h+='<p class="sec-sub">App lock is on for this device ('+(c.cid?'Face ID or fingerprint, with a PIN as backup':'PIN')+').</p>'+sel+
+        '<div class="swrow"><button type="button" class="btn" data-action="lock-edit">Change PIN</button><button type="button" class="btn" data-action="lock-off">Turn off app lock</button></div>';
+    }else{
+      h+='<p class="sec-sub">Ask for a PIN'+(lockBioAvail?', or Face ID / fingerprint,':'')+' when the app opens on this device. Your budget stays hidden until you unlock it.</p>'+
+        '<div class="field"><label for="lockNew">New PIN (4 to 6 numbers)</label><input id="lockNew" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"></div>'+
+        '<div class="field"><label for="lockNew2">Type it again</label><input id="lockNew2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"></div>'+
+        (lockBioAvail?'<label class="hlchk"><input type="checkbox" id="lockUseBio" checked> Also use Face ID or fingerprint</label>':'')+sel+
+        '<p id="lockSetMsg" class="auth-msg" role="status"></p>'+
+        '<div class="swrow"><button type="button" class="btn primary" data-action="lock-on">'+(c?'Save new PIN':'Turn on app lock')+'</button>'+(c?'<button type="button" class="link-btn" data-action="lock-edit-cancel">Cancel</button>':'')+'</div>';
+    }
+    return h;
+  }
+  function lockRender(){var el=$('#meLock');if(el)el.innerHTML=lockHtml()}
+  function lockSetMsg(t){var el=$('#lockSetMsg');if(el)el.textContent=t||''}
+  function lockTurnOn(){
+    var a=($('#lockNew').value||'').trim(),b=($('#lockNew2').value||'').trim();
+    if(!/^[0-9]{4,6}$/.test(a)){lockSetMsg('Use 4 to 6 numbers.');return}
+    if(a!==b){lockSetMsg('The two PINs do not match.');return}
+    if(!window.crypto||!crypto.subtle){lockSetMsg('This browser cannot set a PIN. Try Safari or Chrome.');return}
+    var after=parseInt($('#lockAfter').value,10);if(!(after>=0))after=60000;
+    var useBio=!!($('#lockUseBio')&&$('#lockUseBio').checked),old=lockCfg(),salt=b64e(rnd(16));
+    function finish(cid){
+      pinHash(a,salt).then(function(h){
+        lockSave({h:h,salt:salt,len:a.length,after:after,cid:cid||''});
+        lockEdit=false;lockRender();
+      });
+    }
+    if(useBio&&navigator.credentials){
+      lockSetMsg('Follow the Face ID prompt...');
+      var uid=rnd(16),nm=meEmail||'user';
+      navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:'Household Ledger',id:location.hostname},user:{id:uid,name:nm,displayName:nm},
+        pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+        authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},timeout:60000,attestation:'none'}})
+        .then(function(cr){finish(b64e(cr.rawId))},function(){lockSetMsg('Face ID could not be set up. Saving a PIN only.');finish('')});
+    }else finish(old&&old.cid&&!useBio?'':'');
+  }
+  function lockTurnOff(){lockSave(null);lockEdit=false;lockRender()}
+  document.addEventListener('change',function(e){
+    if(e.target&&e.target.id==='lockAfter'){var c=lockCfg();if(c){c.after=parseInt(e.target.value,10)||0;lockSave(c)}}
+  });
+  document.addEventListener('visibilitychange',function(){
+    var c=lockCfg();
+    if(document.hidden){lockHiddenAt=Date.now();return}
+    if(c&&!lockOpen&&lockHiddenAt&&Date.now()-lockHiddenAt>=c.after&&loadedUid)showLock();
+  });
+  try{if(window.PublicKeyCredential&&PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function(ok){lockBioAvail=!!ok;lockRender()},function(){})}catch(e){}
+  /* saved login preferences: the browser or phone keychain stores the password itself; we only remember the email and whether to stay signed in */
+  function rememberLogin(em){
+    try{
+      var keep=$('#authKeep').checked;
+      localStorage.setItem('hl-keep',keep?'1':'0');
+      if($('#authRemEmail').checked)localStorage.setItem('hl-email',em);else localStorage.removeItem('hl-email');
+    }catch(e){}
+  }
+  function loginPrefsInit(){
+    try{
+      if(localStorage.getItem('hl-keep')==='0'&&!sessionStorage.getItem('hl-alive')){
+        Object.keys(localStorage).forEach(function(k){if(k.indexOf('sb-')===0&&/auth-token/.test(k))localStorage.removeItem(k)});
+      }
+      sessionStorage.setItem('hl-alive','1');
+      var em=localStorage.getItem('hl-email');if(em&&$('#authEmail'))$('#authEmail').value=em;
+      if(localStorage.getItem('hl-keep')==='0')$('#authKeep').checked=false;
+      if(!em&&localStorage.getItem('hl-keep')!==null)$('#authRemEmail').checked=false;
+    }catch(e){}
+  }
   function init(){
     S=sample();render();
+    loginPrefsInit();
+    if(lockCfg())showLock();
     if(!window.supabase||!window.supabase.createClient){showGate();gateMsg('Could not load the sign-in service. Check your connection and refresh.');return}
     sb=window.supabase.createClient(SB_URL,SB_KEY);
     sb.auth.onAuthStateChange(function(ev,session){
@@ -2959,6 +3101,10 @@ main{padding-bottom:150px}
     $('#authSwitch').addEventListener('click',function(){gateMode=gateMode==='up'?'in':'up';gateRender()});
     $('#authForgot').addEventListener('click',gateForgot);
     $('#meColor').addEventListener('input',function(){meSetColor(this.value)});
+    $('#lockForm').addEventListener('submit',function(e){e.preventDefault();lockTryPin()});
+    $('#lockPin').addEventListener('input',function(){var c=lockCfg();if(c&&this.value.length>=(c.len||4)&&/^[0-9]+$/.test(this.value))lockTryPin()});
+    $('#lockBio').addEventListener('click',function(){lockBio(false)});
+    $('#lockForgot').addEventListener('click',lockForgot);
   }
   init();
 })();
