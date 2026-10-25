@@ -332,6 +332,20 @@ li.dim .nm,li.dim .amt{color:var(--muted)}
 .scrim,.sheet,.authgate{overscroll-behavior:contain}
 .sheet{-webkit-overflow-scrolling:touch}
 body.scrolllock{position:fixed;left:0;right:0;width:100%;overflow:hidden}
+
+.tour-hl{outline:3px solid var(--accent)!important;outline-offset:3px;border-radius:12px;animation:tourpulse 1.6s ease-in-out infinite}
+@keyframes tourpulse{0%,100%{outline-color:var(--accent)}50%{outline-color:transparent}}
+@media (prefers-reduced-motion:reduce){.tour-hl{animation:none}}
+.tourbar{position:fixed;left:12px;right:12px;bottom:calc(112px + env(safe-area-inset-bottom,0px));z-index:70;max-width:496px;margin:0 auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 12px 34px rgba(0,0,0,.32);display:grid;gap:8px}
+.tourbar[hidden]{display:none}
+.tour-n{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.tour-t{margin:0;font:800 19px/1.2 var(--font-display)}
+.tour-b{margin:0;font-size:14.5px;color:var(--muted)}
+.tour-dots{display:flex;gap:6px}
+.tour-dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.tour-dots i.on{background:var(--accent)}
+.tour-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.tour-row .btns{display:flex;gap:8px;align-items:center}
 .sheet h2{font:800 20px/1.1 var(--font-display);margin:0}
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .field{display:grid;gap:4px;min-width:0}
@@ -685,7 +699,13 @@ body.scrolllock{position:fixed;left:0;right:0;width:100%;overflow:hidden}
     <button type="button" id="ackNo" class="link-btn">I do not agree. Sign out</button>
   </div>
 </div>
-<style>.ack-list{margin:0;padding-left:20px;display:grid;gap:10px;font-size:14px}.ack-list b{display:block}#ackGo[disabled]{opacity:.45}</style>
+<div id="a2hs" class="a2hs" hidden role="dialog" aria-labelledby="a2hsT">
+  <button type="button" id="a2hsX" class="a2hs-x" aria-label="Close">&times;</button>
+  <p id="a2hsT" class="a2hs-t">Put Household Ledger on your home screen</p>
+  <p id="a2hsBody" class="a2hs-b"></p>
+  <div class="swrow"><button type="button" id="a2hsGo" class="btn primary" hidden>Add to home screen</button><button type="button" id="a2hsNo" class="link-btn">Not now</button><button type="button" id="a2hsNever" class="link-btn">Don't show again</button></div>
+</div>
+<style>.a2hs{position:fixed;left:12px;right:12px;bottom:calc(112px + env(safe-area-inset-bottom,0px));z-index:60;max-width:496px;margin:0 auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:16px 16px 10px;box-shadow:0 10px 30px rgba(0,0,0,.28);display:grid;gap:8px}.a2hs-t{margin:0;font-weight:700;padding-right:28px}.a2hs-b{margin:0;font-size:14px;color:var(--muted)}.a2hs-b b{color:var(--ink)}.a2hs-x{position:absolute;top:6px;right:8px;width:36px;height:36px;border:0;background:none;font-size:24px;color:var(--muted)}.ack-list{margin:0;padding-left:20px;display:grid;gap:10px;font-size:14px}.ack-list b{display:block}#ackGo[disabled]{opacity:.45}</style>
 <div id="legalScrim" class="scrim" hidden style="z-index:200">
   <div id="legalSheet" class="sheet" role="dialog" aria-labelledby="legalTitle">
     <h2 id="legalTitle"></h2>
@@ -715,6 +735,7 @@ body.scrolllock{position:fixed;left:0;right:0;width:100%;overflow:hidden}
     <div class="field"><label>App lock (Face ID or PIN)</label><div id="meLock"></div></div>
     <div class="field"><label>Your data</label>
       <button type="button" class="btn" data-action="me-export">Download my data</button>
+      <button type="button" class="btn" data-action="tour-start">Take the app tour</button>
       <button type="button" id="meDelStart" class="btn danger" data-action="me-del-start">Delete my account</button>
       <div id="meDelBox" hidden class="deletebox"><p class="sec-sub">This permanently deletes your account and everything in it. It cannot be undone. Type <b>DELETE</b> to confirm.</p>
         <input id="meDelText" autocomplete="off" autocapitalize="characters" aria-label="Type DELETE to confirm">
@@ -2544,6 +2565,7 @@ main{padding-bottom:150px}
       else if(a==='card-close'){closeCardDetail()}
       else if(a==='look-theme'){lookSet('theme',el.getAttribute('data-v')||'')}
       else if(a==='look-text'){lookSet('text',el.getAttribute('data-v')||'')}
+      else if(a==='tour-start'){if(typeof closeMe==='function')closeMe();startTour()}
       else if(a==='signout'){gwSignOut()}
       else if(a==='my-account'){openMe()}
       else if(a==='me-export'){meExport()}
@@ -2841,6 +2863,60 @@ main{padding-bottom:150px}
 
   /* ---------- start ---------- */
   render();
+  /* ---------- welcome tour ---------- */
+  var TOUR=[
+    {tab:'home',sel:'.tabs [data-tab="home"]',t:'Welcome to Household Ledger',b:'Here is a quick look around. It takes about a minute. Home shows your whole month at a glance: your balances, what is left after bills, and what is coming up.'},
+    {tab:'home',sel:'#quickForm',t:'Add spending in seconds',b:'Pick the account, choose money in or out, type the amount and tap Add. Your balances update right away.'},
+    {tab:'budget',sel:'.tabs [data-tab="budget"]',t:'Budget: bills and income',b:'Your paychecks, bills, subscriptions, commission and charity donations live here. Tick a bill when you pay it and your balance and totals update on their own.'},
+    {tab:'calendar',sel:'.tabs [data-tab="calendar"]',t:'Calendar: see the month',b:'Paydays and bills show on the days they happen. Tap a day to see details. A bill you tick gets a line through it.'},
+    {tab:'banking',sel:'.tabs [data-tab="banking"]',t:'Banking: every account',b:'Checking, savings, and each credit card on its own line. Balances carry over from month to month.'},
+    {tab:'home',sel:'.month',t:'Look back or plan ahead',b:'Use the arrows to move between months. What you add stays with its month, so you can always go back and see the history.'},
+    {tab:'home',sel:'.hfoot',t:'Make it yours',b:'In Account you can pick your colours, switch between light and dark, turn on a Face ID or PIN lock, and download your data. You are all set.'}
+  ];
+  var tourI=-1,tourEl=null,tourHl=null;
+  function tourKey(){return 'hl-tour:'+(typeof KEY!=='undefined'?KEY:'x')}
+  function tourSeen(){try{return localStorage.getItem(tourKey())==='1'}catch(e){return true}}
+  function tourMark(){try{localStorage.setItem(tourKey(),'1')}catch(e){}}
+  function tourClear(){if(tourHl){tourHl.classList.remove('tour-hl');tourHl=null}}
+  function tourEnd(){tourClear();tourI=-1;if(tourEl)tourEl.hidden=true;try{window.scrollTo(0,0)}catch(e){}}
+  function tourShow(i){
+    var st=TOUR[i];if(!st){tourEnd();return}
+    tourI=i;tourClear();
+    var tb=document.querySelector('.tabs [data-tab="'+st.tab+'"]');
+    if(tb&&view!==st.tab){view=st.tab;render()}
+    if(!tourEl){
+      tourEl=document.createElement('div');tourEl.className='tourbar';tourEl.setAttribute('role','dialog');tourEl.setAttribute('aria-live','polite');tourEl.setAttribute('aria-label','App tour');
+      tourEl.addEventListener('click',function(e){
+        var a=e.target.closest&&e.target.closest('[data-tour]');if(!a)return;
+        var k=a.getAttribute('data-tour');
+        if(k==='next'){if(tourI>=TOUR.length-1)tourEnd();else tourShow(tourI+1)}
+        else if(k==='back'){if(tourI>0)tourShow(tourI-1)}
+        else tourEnd();
+      });
+      document.body.appendChild(tourEl);
+    }
+    var dots='';for(var d=0;d<TOUR.length;d++)dots+='<i'+(d===i?' class="on"':'')+'></i>';
+    tourEl.innerHTML='<p class="tour-n">Step '+(i+1)+' of '+TOUR.length+'</p><p class="tour-t">'+esc(st.t)+'</p><p class="tour-b">'+esc(st.b)+'</p>'+
+      '<div class="tour-row"><div class="tour-dots" aria-hidden="true">'+dots+'</div><div class="btns">'+
+      (i>0?'<button type="button" class="btn" data-tour="back">Back</button>':'<button type="button" class="link-btn" data-tour="skip">Skip</button>')+
+      '<button type="button" class="btn primary" data-tour="next">'+(i===TOUR.length-1?'Done':'Next')+'</button></div></div>';
+    tourEl.hidden=false;
+    setTimeout(function(){
+      var el=document.querySelector(st.sel);
+      if(el){tourHl=el;el.classList.add('tour-hl');
+        if(!/tabs/.test(st.sel)){try{el.scrollIntoView({block:'center',behavior:'smooth'})}catch(e){}}else{try{window.scrollTo(0,0)}catch(e){}}}
+    },60);
+  }
+  function startTour(){tourMark();tourShow(0)}
+  function tourPoll(){
+    var n=0,t=setInterval(function(){
+      n++;
+      if(tourSeen()||n>60){clearInterval(t);return}
+      var busy=false;
+      document.querySelectorAll('.scrim,.authgate').forEach(function(e){if(!e.hidden)busy=true});
+      if(!busy&&S&&!S.sample&&!previewMode&&tourI<0){clearInterval(t);startTour()}
+    },2500);
+  }
   /* keep the page behind a sheet or the sign-in screen from scrolling */
   (function(){
     var locked=false,y=0;
@@ -2857,6 +2933,7 @@ main{padding-bottom:150px}
     try{new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['hidden']})}catch(e){}
     sync();
   })();
+  tourPoll();
   /* ---------- sign-in and storage through Supabase (standalone website) ---------- */
   var SB_URL='https://znbfrmjejlxjrtxundpy.supabase.co',SB_KEY='sb_publishable_v6HhOwnp7QTFJmM0qI3MSw_0PuOgVIo',sb=null,gateMode='in',loadedUid=null;
 
@@ -3034,6 +3111,44 @@ main{padding-bottom:150px}
   }
 
 
+
+
+  /* ---------- nudge to add the site to the phone's home screen ---------- */
+  var a2Evt=null,a2Tries=0;
+  function a2Standalone(){try{return !!(navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches))}catch(e){return false}}
+  function a2IsIos(){return /iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)}
+  function a2IsMobile(){return a2IsIos()||/Android/i.test(navigator.userAgent)}
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();a2Evt=e});
+  window.addEventListener('appinstalled',function(){try{localStorage.setItem('hl-a2hs','never')}catch(e){}$('#a2hs').hidden=true});
+  function a2Allowed(){
+    if(a2Standalone()||!a2IsMobile())return false;
+    try{var v=localStorage.getItem('hl-a2hs');if(v==='never')return false;if(v&&Date.now()<parseInt(v,10))return false}catch(e){}
+    return true;
+  }
+  function a2Show(){
+    var ios=a2IsIos();
+    if(ios){
+      $('#a2hsBody').innerHTML='Open it like an app. Tap the <b>Share</b> button (the square with an arrow, at the bottom or top of Safari), scroll down, and tap <b>Add to Home Screen</b>, then <b>Add</b>.';
+      $('#a2hsGo').hidden=true;
+    }else if(a2Evt){
+      $('#a2hsBody').textContent='Open it like an app with one tap, with no browser bars.';
+      $('#a2hsGo').hidden=false;
+    }else{
+      $('#a2hsBody').innerHTML='Open it like an app. Tap the <b>menu</b> (three dots) in your browser, then <b>Add to Home screen</b> or <b>Install app</b>.';
+      $('#a2hsGo').hidden=true;
+    }
+    $('#a2hs').hidden=false;
+  }
+  function a2Poll(){
+    if(!a2Allowed())return;
+    var t=setInterval(function(){
+      a2Tries++;
+      var busy=!tourSeen()||(tourI>=0)||!$('#ackScrim').hidden||!$('#wizScrim').hidden||!$('#lockScreen').hidden||!$('#authGate').hidden||!$('#meScrim').hidden;
+      if(!busy&&loadedUid){clearInterval(t);if(a2Allowed())a2Show();return}
+      if(a2Tries>40)clearInterval(t);
+    },2500);
+  }
+  function a2Snooze(days){try{localStorage.setItem('hl-a2hs',String(Date.now()+days*86400000))}catch(e){}$('#a2hs').hidden=true}
 
   /* ---------- one-time agreement (shown again if the terms version changes) ---------- */
   var ACK_VER='2026-10-25',ackUid=null;
@@ -3217,6 +3332,11 @@ main{padding-bottom:150px}
     $('#authSwitch').addEventListener('click',function(){gateMode=gateMode==='up'?'in':'up';gateRender()});
     $('#authForgot').addEventListener('click',gateForgot);
     $('#meColor').addEventListener('input',function(){meSetColor(this.value)});
+    $('#a2hsX').addEventListener('click',function(){a2Snooze(7)});
+    $('#a2hsNo').addEventListener('click',function(){a2Snooze(7)});
+    $('#a2hsNever').addEventListener('click',function(){try{localStorage.setItem('hl-a2hs','never')}catch(e){}$('#a2hs').hidden=true});
+    $('#a2hsGo').addEventListener('click',function(){if(!a2Evt){$('#a2hs').hidden=true;return}a2Evt.prompt();a2Evt.userChoice.then(function(c){a2Evt=null;$('#a2hs').hidden=true;if(!c||c.outcome!=='accepted')a2Snooze(7)},function(){})});
+    a2Poll();
     $('#ackCheck').addEventListener('change',function(){$('#ackGo').disabled=!this.checked});
     $('#ackGo').addEventListener('click',ackAccept);
     $('#ackNo').addEventListener('click',gwSignOut);
