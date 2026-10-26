@@ -336,6 +336,52 @@ ul.next li.paid .nn,ul.next li.paid .nd,ul.next li.paid .num{color:var(--muted);
 .mrow::after{content:"\203A";color:var(--muted);font-size:22px;line-height:1}
 .msign{border:0;background:none;color:var(--out);font:600 16px var(--font-body);min-height:48px;margin:0 auto}
 #menuSheet .legal-note{margin-top:0!important}
+.lookseg button[disabled]{opacity:.45}
+.hi{margin:0;font-size:14px;color:var(--muted)}
+.pbar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.pcap{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.hcard.hero .hbig{font-size:clamp(44px,15vw,58px);letter-spacing:-.02em;font-weight:700}
+/* Looks: dark "glass" styles (Night Garden, Ocean, Sunset, Midnight) and light styles (Sunrise, Meadow). Each paints art behind the top of the page. */
+:root[data-glass]{
+  --bg:var(--lk-bg);--surface:rgba(255,255,255,.07);--ink:#EEF2EE;--muted:#A9B6AE;--line:rgba(255,255,255,.14);
+  --accent:#6C98FF;--accent-ink:#06101F;--in:#4CC9A0;--in-soft:rgba(76,201,160,.18);--out:#FF8A7E;--warn-soft:rgba(255,138,126,.18);
+  --c1:#7EA2FF;--c2:#4CC9A0;--c3:#F2A04A;--c4:#FF8A7E;--c5:#B596F5;--c6:#4FC3D6;--c7:#F27DBB;--c8:#9AA7B5;--tint:36%;color-scheme:dark;
+}
+:root[data-look="deer"]{--lk-bg:#0A120B;--lk-sheet:#101A12;--lk-tab:rgba(8,16,10,.9);--lk-glow:transparent;--accent:#E3B65A;--accent-ink:#241800;--look-art:linear-gradient(rgba(4,9,6,.40),rgba(4,9,6,.40)),var(--deer-img,linear-gradient(160deg,#4a5a2a,#0a120b))}
+:root[data-look="photo"]{--lk-bg:#0B0F14;--lk-sheet:#141A22;--lk-tab:rgba(8,12,18,.9);--lk-glow:transparent;--accent:#8FB4FF;--accent-ink:#06101F;--look-art:linear-gradient(rgba(0,0,0,var(--photo-dim,.40)),rgba(0,0,0,var(--photo-dim,.40))),var(--photo-img,linear-gradient(160deg,#3a4a66,#0b0f14))}
+:root[data-look="ducks"]{--lk-bg:#0D130F;--lk-sheet:#131C16;--lk-tab:rgba(8,15,11,.9);--lk-glow:transparent;--accent:#7FD6A0;--accent-ink:#04140B;--look-art:linear-gradient(rgba(4,9,6,.40),rgba(4,9,6,.40)),var(--ducks-img,linear-gradient(160deg,#6b5a3c,#0d130f))}
+:root[data-look="garden"]{--lk-bg:#060B09;--lk-sheet:#0E1713;--lk-tab:rgba(10,16,13,.88);--lk-glow:rgba(255,206,120,.30);
+  --look-art:var(--garden-img,linear-gradient(135deg,#0b1a12,#050a08 60%,#2a2410))}
+:root[data-look="ocean"]{--lk-bg:#04121C;--lk-sheet:#0A1B28;--lk-tab:rgba(5,20,31,.88);--lk-glow:rgba(56,189,248,.32);--accent:#5CC8F2;--accent-ink:#03141F;
+  --look-art:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 300' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23BFEFFF' stroke-opacity='.16' stroke-width='1.6'%3E%3Cpath d='M0 150 C75 120 150 180 225 150 S375 120 450 150 S560 170 600 150'/%3E%3Cpath d='M0 185 C75 155 150 215 225 185 S375 155 450 185 S560 205 600 185'/%3E%3Cpath d='M0 220 C75 190 150 250 225 220 S375 190 450 220 S560 240 600 220'/%3E%3Cpath d='M0 255 C75 225 150 285 225 255 S375 225 450 255 S560 275 600 255'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(ellipse at 15% 0%,rgba(56,189,248,.38),transparent 55%),radial-gradient(ellipse at 100% 25%,rgba(20,184,166,.30),transparent 55%),linear-gradient(165deg,#0D4A6B,#07263A 55%,#04121C)}
+:root[data-look="sunset"]{--lk-bg:#140A1E;--lk-sheet:#1D1029;--lk-tab:rgba(24,12,34,.9);--lk-glow:rgba(255,170,80,.35);--accent:#FFA45E;--accent-ink:#2A1200;
+  --look-art:radial-gradient(circle at 78% 34%,rgba(255,214,150,.85) 0,rgba(255,170,80,.45) 9%,transparent 24%),radial-gradient(ellipse at 10% 0%,rgba(236,72,153,.40),transparent 55%),linear-gradient(175deg,#5B2272,#33143F 55%,#140A1E)}
+:root[data-look="midnight"]{--lk-bg:#070B1A;--lk-sheet:#0D1430;--lk-tab:rgba(9,14,34,.9);--lk-glow:rgba(120,140,255,.30);--accent:#8AA4FF;--accent-ink:#060B22;
+  --look-art:radial-gradient(1.5px 1.5px at 12% 18%,#fff,transparent),radial-gradient(1px 1px at 27% 42%,rgba(255,255,255,.8),transparent),radial-gradient(1.5px 1.5px at 41% 12%,#fff,transparent),radial-gradient(1px 1px at 55% 55%,rgba(255,255,255,.7),transparent),radial-gradient(2px 2px at 68% 22%,#fff,transparent),radial-gradient(1px 1px at 79% 48%,rgba(255,255,255,.8),transparent),radial-gradient(1.5px 1.5px at 90% 15%,#fff,transparent),radial-gradient(1px 1px at 8% 62%,rgba(255,255,255,.6),transparent),radial-gradient(1px 1px at 34% 70%,rgba(255,255,255,.6),transparent),radial-gradient(1.5px 1.5px at 85% 72%,rgba(255,255,255,.7),transparent),radial-gradient(ellipse at 80% 0%,rgba(110,130,255,.35),transparent 55%),linear-gradient(180deg,#16225A,#0A1030 60%,#070B1A)}
+:root[data-look="sunrise"]{--bg:#FFF7EE;--surface:rgba(255,255,255,.88);--ink:#2B1B14;--muted:#7A6559;--line:rgba(120,70,40,.16);--accent:#D9582B;--accent-ink:#fff;--lk-glow:transparent;
+  --look-art:radial-gradient(circle at 82% 22%,rgba(255,196,120,.85) 0,rgba(255,176,110,.40) 14%,transparent 34%),radial-gradient(ellipse at 0% 0%,rgba(255,150,150,.45),transparent 55%),linear-gradient(180deg,#FFE3C8,#FFF7EE)}
+:root[data-look="meadow"]{--bg:#F3F8F1;--surface:rgba(255,255,255,.9);--ink:#12301F;--muted:#58705F;--line:rgba(30,80,50,.16);--accent:#1F8A4C;--accent-ink:#fff;--lk-glow:transparent;
+  --look-art:radial-gradient(circle at 15% 30%,rgba(120,200,140,.50) 0,transparent 28%),radial-gradient(circle at 85% 12%,rgba(190,230,150,.60) 0,transparent 30%),radial-gradient(circle at 60% 60%,rgba(130,205,170,.35) 0,transparent 30%),linear-gradient(180deg,#D5EFD6,#F3F8F1)}
+:root[data-look] body{position:relative;isolation:isolate}
+:root[data-glass] body{background:var(--lk-bg)}
+:root[data-look] body::before{content:"";position:absolute;left:0;right:0;top:0;height:560px;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(180deg,color-mix(in srgb,var(--bg) 0%,transparent) 0%,color-mix(in srgb,var(--bg) 30%,transparent) 55%,var(--bg) 100%),radial-gradient(ellipse at 100% 0%,var(--lk-glow,transparent),transparent 60%),var(--look-art);
+  background-size:cover;background-position:center top}
+:root[data-glass] .hcard,:root[data-glass] .spend,:root[data-glass] .hero{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:18px}
+:root[data-glass] .hcard.hero{background:transparent;border-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;padding-top:26px;padding-bottom:22px}
+:root[data-glass] .hcard.hero .stats{border-top-color:rgba(255,255,255,.25)}
+:root[data-glass] .hcard.hero .lbl,:root[data-glass] .hcard.hero .pcap{color:#D5DED8}
+:root[data-glass] .sheet{background:var(--lk-sheet)}
+:root[data-glass] .tabs{background:var(--lk-tab);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+:root[data-glass] .top h1.wordmark,:root[data-glass] .top .month{color:#fff}
+:root[data-glass] input,:root[data-glass] select{background:rgba(6,11,9,.55)}
+:root[data-look]:not([data-glass]) .top h1.wordmark{color:var(--ink)}
+
+/* phone: scrolls and taps like an app */
+html{-webkit-tap-highlight-color:transparent;scroll-padding-top:90px}
+body{overscroll-behavior-y:none;-webkit-text-size-adjust:100%}
+button,a,select,summary,label,[role="tab"],[data-action]{touch-action:manipulation}
 .tabs,.avatar,.icon-btn,.hcard-h,.mrow{-webkit-user-select:none;user-select:none}
 /* laptop and desktop: a full-width website */
 @media (min-width:900px) and (orientation:landscape),(min-width:900px) and (hover:hover) and (pointer:fine){
@@ -4297,7 +4343,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.10.26-z</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.10.26-za</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
