@@ -625,7 +625,7 @@ ul.list>li.swing>*{transition:none!important}
       </div>
       <div class="field full" id="payWrap" hidden>
         <label for="fPay">Paid with</label>
-        <select id="fPay"><option value="">Not set</option><option value="bank">Bank account</option><option value="card">Credit card</option></select>
+        <select id="fPay"><option value="">Not set</option></select>
       </div>
       <div class="field full" id="whoWrap" hidden>
         <label for="fWho">Whose income (optional)</label>
@@ -928,7 +928,7 @@ ul.list>li.swing>*{transition:none!important}
     <div class="fields">
       <div class="field full">
         <label for="fTithePay">Paid from</label>
-        <select id="fTithePay"><option value="bank">Bank account</option><option value="card">Credit card</option></select>
+        <select id="fTithePay"></select>
       </div>
     </div>
     <label class="check" id="titheCommWrap"><input type="checkbox" id="fTitheComm"> Include commission</label>
@@ -1413,7 +1413,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
   function normTithe(t){
     t=t||{};
     var p=parseFloat(t.pct);
-    return {mode:t.mode==='fixed'?'fixed':'percent',amt:(isFinite(parseFloat(t.amt))&&parseFloat(t.amt)>=0)?parseFloat(t.amt):0,per:t.per==='paycheck'?'paycheck':'month',on:t.on===true,pct:(isFinite(p)&&p>=0&&p<=100)?p:10,auto:t.auto===true,comm:t.comm!==false,pay:t.pay==='card'?'card':'bank',paid:(t.paid&&typeof t.paid==='object')?t.paid:{}};
+    return {mode:t.mode==='fixed'?'fixed':'percent',amt:(isFinite(parseFloat(t.amt))&&parseFloat(t.amt)>=0)?parseFloat(t.amt):0,per:t.per==='paycheck'?'paycheck':'month',on:t.on===true,pct:(isFinite(p)&&p>=0&&p<=100)?p:10,auto:t.auto===true,comm:t.comm!==false,pay:(typeof t.pay==='string'&&t.pay.slice(0,2)==='a:')?t.pay:(t.pay==='card'?'card':'bank'),paid:(t.paid&&typeof t.paid==='object')?t.paid:{}};
   }
   function paycheckCount(ym){var n=0;S.income.forEach(function(r){n+=payDates(r,ym).length});return n}
   function titheOf(inc,comm){
@@ -1470,6 +1470,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
   }
   function payLabel(v){
     if(typeof v==='string'&&v.slice(0,2)==='a:'){var ac=S.accounts.filter(function(x){return x.id===v.slice(2)})[0];return ac?ac.name:''}
+    var la=(v==='card'||v==='bank')?acctForPay(v):null;if(la)return la.name;
     return v==='card'?'Credit card':v==='bank'?'Bank account':''
   }
   /* ---------- spending by category ---------- */
@@ -1491,7 +1492,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
       out.push({date:month+'-'+pad2(d),name:u.name,sub:cname(u.pay)+' \u00b7 Subscription',amt:cents(bAmt(u,month)),sched:true,cat:'@subs',col:'c7',cn:'Subscriptions'});
     });
     var tt=totals().tithe;
-    if(S.tithe.on&&S.tithe.pay==='card'&&tt>0)out.push({date:month+'-01',name:'Charity donations',sub:'Credit card \u00b7 Charity donations',amt:tt,sched:true,cat:'@tithe',col:'c5',cn:'Charity donations'});
+    if(S.tithe.on&&onCard(S.tithe.pay)&&tt>0)out.push({date:month+'-01',name:'Charity donations',sub:'Credit card \u00b7 Charity donations',amt:tt,sched:true,cat:'@tithe',col:'c5',cn:'Charity donations'});
     out.sort(function(a,b){return a.date<b.date?1:(a.date>b.date?-1:(b.ts||0)-(a.ts||0))});
     return out;
   }
@@ -1594,7 +1595,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     var subs=0;S.subs.forEach(function(u){if(subDay(u,month)&&!onCard(u.pay))subs+=cents(bAmt(u,month))});
     add('subs','Subscriptions','c7',subs);
     var t=totals();
-    if(S.tithe.on&&S.tithe.pay!=='card')add('tithe','Charity donations','c5',t.tithe);
+    if(S.tithe.on&&!onCard(S.tithe.pay))add('tithe','Charity donations','c5',t.tithe);
     S.txns.forEach(function(x){
       if(x.dir==='in'||!x.date||x.date.slice(0,7)!==month)return;
       var xa=acctById(x.a);if(xa&&xa.type==='card')return;
@@ -1802,7 +1803,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     if(S.tithe.on){
       tc=titheOf(inc,comm);
       bil+=tc;
-      var tk=S.tithe.pay==='card'?'card':'bank',topen=!(S.tithe.auto||S.tithe.paid[month]);
+      var tk=onCard(S.tithe.pay)?'card':'bank',topen=!(S.tithe.auto||S.tithe.paid[month]);
       pm[tk][0]+=tc;
       if(topen){unpaid+=tc;pm[tk][1]+=tc}
     }
@@ -2582,7 +2583,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
       var delta=acct.type==='card'?(income?-amtC:amtC):(income?amtC:-amtC);
       out.push({a:acct.id,d:d,c:delta});
     }
-    var tithePct=(S.tithe.on&&S.tithe.mode!=='fixed')?S.tithe.pct/100:0,tFixed=(S.tithe.on&&S.tithe.mode==='fixed')?cents(S.tithe.amt):0,tAcct=S.tithe.pay==='card'?firstAcct('card'):firstAcct('checking');
+    var tithePct=(S.tithe.on&&S.tithe.mode!=='fixed')?S.tithe.pct/100:0,tFixed=(S.tithe.on&&S.tithe.mode==='fixed')?cents(S.tithe.amt):0,tAcct=acctForPay(S.tithe.pay)||firstAcct('checking');
     S.income.forEach(function(r){
       var ac=acctForDep(r.dep),c=cents(r.amt);
       payDates(r,ym).forEach(function(d){
@@ -3104,10 +3105,10 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#freqWrap').hidden=kind!=='income';
     $('#calWrap').hidden=kind!=='bill'&&kind!=='sub';
     $('#payWrap').hidden=kind!=='bill'&&kind!=='sub';
-    var payOpts='<option value="">Not set</option><option value="bank">Bank account</option><option value="card">Credit card</option>';
+    var payOpts='<option value="">Not set</option>';
     S.accounts.forEach(function(ac){payOpts+='<option value="a:'+ac.id+'">'+esc(ac.name||ACCT_TYPES[ac.type])+'</option>'});
     $('#fPay').innerHTML=payOpts;
-    if(kind==='bill'||kind==='sub'){var pv=(item&&item.pay)?item.pay:'';$('#fPay').value=pv;if($('#fPay').value!==pv)$('#fPay').value=''}
+    if(kind==='bill'||kind==='sub'){var pv=(item&&item.pay)?item.pay:'';if(pv==='bank'||pv==='card'){var la=acctForPay(pv);pv=la?'a:'+la.id:''}$('#fPay').value=pv;if($('#fPay').value!==pv)$('#fPay').value=''}
     var depOpts='<option value="">Primary checking account</option>';
     S.accounts.forEach(function(ac){if(ac.type!=='card')depOpts+='<option value="'+ac.id+'">'+esc(ac.name||ACCT_TYPES[ac.type])+'</option>'});
     $('#fDep').innerHTML=depOpts;
@@ -3532,7 +3533,10 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#fTitheComm').checked=!!S.tithe.comm;
     $('#fTitheOn').checked=!!S.tithe.on;
     $('#fTitheAuto').checked=!!S.tithe.auto;
-    $('#fTithePay').value=S.tithe.pay==='card'?'card':'bank';
+    (function(){var o='',cur=S.tithe.pay;if(cur==='bank'||cur==='card'){var la=acctForPay(cur);cur=la?'a:'+la.id:''}
+      S.accounts.forEach(function(ac){o+='<option value="a:'+ac.id+'">'+esc(ac.name||ACCT_TYPES[ac.type])+'</option>'});
+      if(!o)o='<option value="bank">Add an account first</option>';
+      $('#fTithePay').innerHTML=o;if(cur)$('#fTithePay').value=cur;if($('#fTithePay').selectedIndex<0)$('#fTithePay').selectedIndex=0})();
     $('#titheErr').textContent='';
     syncTitheMode();
     $('#titheScrim').hidden=false;
@@ -3554,7 +3558,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     }
     S.tithe.on=$('#fTitheOn').checked;S.tithe.auto=$('#fTitheAuto').checked;
     if(S.tithe.auto&&S.tithe.mode==='fixed')S.tithe.per='paycheck';
-    S.tithe.pay=$('#fTithePay').value==='card'?'card':'bank';
+    S.tithe.pay=$('#fTithePay').value||'bank';
     closeTithe();render();persist();
   });
   $('#fFreq').addEventListener('change',syncFreq);
@@ -3801,7 +3805,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     if(wizStep===3){W.comm.mode=wv('wCommMode');W.comm.amt=wv('wCommAmt');W.comm.nth=wv('wCommNth')||'2'}
     if(wizStep===4){W.chk.name=wv('wChkName').trim()||tr('Main checking');W.chk.bal=wv('wChkBal');W.sav.name=wv('wSavName').trim()||tr('Savings');W.sav.bal=wv('wSavBal');W.card.name=wv('wCardName').trim()||tr('Credit card');W.card.bal=wv('wCardBal');W.card.limit=wv('wCardLimit')}
     if(wizStep===5)W.bills.forEach(function(b,i){b.on=$('#wb'+i).checked;b.amt=wv('wba'+i);b.day=wv('wbd'+i)})
-    if(wizStep===6){W.tithe.on=$('#wTitheOn').checked;if(W.tithe.on&&$('#wTitheMode')){W.tithe.mode=wv('wTitheMode')==='fixed'?'fixed':'percent';W.tithe.pay=wv('wTithePay')||'bank';
+    if(wizStep===6){W.tithe.on=$('#wTitheOn').checked;if(W.tithe.on&&$('#wTitheMode')){W.tithe.mode=wv('wTitheMode')==='fixed'?'fixed':'percent';W.tithe.pay='bank';
       if($('#wTithePct'))W.tithe.pct=wv('wTithePct');if($('#wTitheAmt'))W.tithe.amt=wv('wTitheAmt');if($('#wTithePer'))W.tithe.per=wv('wTithePer');if($('#wTitheComm'))W.tithe.comm=$('#wTitheComm').checked}}
   }
   function wizValid(){
@@ -3862,7 +3866,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
         if(W.tithe.mode==='fixed')h+='<div class="wrow"><div class="field"><label for="wTitheAmt">Amount</label><input id="wTitheAmt" inputmode="decimal" placeholder="0.00" value="'+esc(W.tithe.amt)+'"></div>'+
           '<div class="field"><label for="wTithePer">Is that</label><select id="wTithePer"><option value="month"'+(W.tithe.per==='month'?' selected':'')+'>Per month</option><option value="paycheck"'+(W.tithe.per==='paycheck'?' selected':'')+'>Per paycheck</option></select></div></div>';
         else h+='<div class="field"><label for="wTithePct">Percent</label><input id="wTithePct" inputmode="decimal" value="'+esc(W.tithe.pct)+'" maxlength="5"></div>';
-        h+='<div class="field"><label for="wTithePay">Paid from</label><select id="wTithePay"><option value="bank"'+(W.tithe.pay==='bank'?' selected':'')+'>Bank account</option><option value="card"'+(W.tithe.pay==='card'?' selected':'')+'>Credit card</option></select></div>';
+        
         if(W.tithe.mode!=='fixed')h+='<label class="chkline wtoggle"><input type="checkbox" id="wTitheComm"'+(W.tithe.comm?' checked':'')+'> Include my commission</label>';
       }
     }
@@ -4398,7 +4402,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.10.28-zi</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.10.28-zj</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
