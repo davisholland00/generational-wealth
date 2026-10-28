@@ -1774,21 +1774,22 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
   }
   function totals(){
     var inc=0,bil=0,unpaid=0,comm=0;
-    var pm={bank:[0,0],card:[0,0],none:[0,0]},subsC=0;
+    var pm={bank:[0,0],card:[0,0],none:[0,0]},pa={},subsC=0;
+    function pacc(pay,k,c,open){var ac=acctForPay(pay),id=ac?ac.id:'';if(!id)return;var e=pa[id]||(pa[id]=[0,0]);e[0]+=c;if(open)e[1]+=c}
     S.income.forEach(function(r){inc+=cents(r.amt)*payDates(r,month).length});
     S.commissions.forEach(function(r){if(commActive(r,month))comm+=cents(commAmt(r,month))});
     S.bills.forEach(function(r){
       if(!billDay(r,month))return;
       var k=payKind(r.pay),c=cents(bAmt(r,month)),open=!(r.paid&&r.paid[month]);
       bil+=c;
-      pm[k][0]+=c;
+      pm[k][0]+=c;pacc(r.pay,k,c,open);
       if(open){unpaid+=c;pm[k][1]+=c}
     });
     S.subs.forEach(function(u){
       if(!subDay(u,month))return;
       var k=payKind(u.pay),c=cents(bAmt(u,month)),open=!(u.paid&&u.paid[month]);
       bil+=c;subsC+=c;
-      pm[k][0]+=c;
+      pm[k][0]+=c;pacc(u.pay,k,c,open);
       if(open){unpaid+=c;pm[k][1]+=c}
     });
     var tin=0,tout=0;
@@ -1798,16 +1799,16 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
       var c=cents(x.amt);if(x.dir==='in')tin+=c;else tout+=c;
     });
     var cardC=0;
-    cardCharges().forEach(function(x){var c=cents(x.amt);bil+=c;cardC+=c;pm.card[0]+=c});
+    cardCharges().forEach(function(x){var c=cents(x.amt);bil+=c;cardC+=c;pm.card[0]+=c;var ca=acctById(x.a);if(ca){var ce=pa[ca.id]||(pa[ca.id]=[0,0]);ce[0]+=c}});
     var tc=0;
     if(S.tithe.on){
       tc=titheOf(inc,comm);
       bil+=tc;
       var tk=onCard(S.tithe.pay)?'card':'bank',topen=!(S.tithe.auto||S.tithe.paid[month]);
-      pm[tk][0]+=tc;
+      pm[tk][0]+=tc;pacc(S.tithe.pay,tk,tc,topen);
       if(topen){unpaid+=tc;pm[tk][1]+=tc}
     }
-    return {inc:inc,comm:comm,bil:bil,unpaid:unpaid,all:inc+comm+tin,spent:tout,moneyIn:tin,tithe:tc,pm:pm,subs:subsC,cardC:cardC};
+    return {inc:inc,comm:comm,bil:bil,unpaid:unpaid,all:inc+comm+tin,spent:tout,moneyIn:tin,tithe:tc,pm:pm,pa:pa,subs:subsC,cardC:cardC};
   }
   function row(kind,r){
     var amt=cents(bAmt(r,month))/100;
@@ -1877,11 +1878,15 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
   }
   function payTotals(t){
     if(!t.bil)return '';
-    var items=[['bank','Bank account'],['card','Credit card']];
-    if(t.pm.none[0])items.push(['none','Not assigned']);
+    var items=[];
+    S.accounts.forEach(function(ac){if(t.pa&&t.pa[ac.id])items.push([ac.id,ac.name||ACCT_TYPES[ac.type],t.pa[ac.id]])});
+    var rest=[t.pm.bank[0],t.pm.bank[1]],rc=[t.pm.card[0],t.pm.card[1]],sum=[0,0];
+    items.forEach(function(it){sum[0]+=it[2][0];sum[1]+=it[2][1]});
+    var tot=t.pm.bank[0]+t.pm.card[0]+t.pm.none[0],tl=t.pm.bank[1]+t.pm.card[1]+t.pm.none[1];
+    if(tot-sum[0]>0||tl-sum[1]>0)items.push(['none','Not assigned',[tot-sum[0],tl-sum[1]]]);
     return '<div class="paytot"><h3>Comes out of</h3><dl>'+items.map(function(it){
-      var v=t.pm[it[0]];
-      return '<div><dt>'+it[1]+'</dt><dd class="num big2">'+fmt(v[0]/100)+'</dd><dd class="left">Still to pay '+fmt(v[1]/100)+'</dd></div>';
+      var v=it[2];
+      return '<div><dt>'+esc(it[1])+'</dt><dd class="num big2">'+fmt(v[0]/100)+'</dd><dd class="left">Still to pay '+fmt(v[1]/100)+'</dd></div>';
     }).join('')+'</dl></div>';
   }
   function subsSection(t){
@@ -4402,7 +4407,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.10.28-zj</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.10.28-zk</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
