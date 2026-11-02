@@ -439,6 +439,10 @@ button,a,select,summary,label,[role="tab"],[data-action]{touch-action:manipulati
 li.dim .nm,li.dim .amt{color:var(--muted)}
 #app{display:grid;gap:26px;min-width:0}
 .check.full{grid-column:1 / -1}
+.txbar{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+.txbar .txb-t{font:700 15px var(--font-display);flex:none}
+.txbar .txb-a{margin-left:auto;display:flex;gap:10px;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.txbar .go{color:var(--accent);font-size:20px;line-height:1}
 .txnav{display:flex;align-items:center;justify-content:center;gap:12px;margin:2px 0 10px;font-weight:600}
 .txsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
 .txsum div{border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:grid;gap:2px}
@@ -2031,7 +2035,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     var td=todayISO(),up=0;
     function chkItem(x,d){
       if(!d||(x.paid&&x.paid[month]))return;
-      if(month+'-'+pad2(d)<=td)return;
+      if(month+'-'+pad2(d)<=td&&!overdueUnpaid(x,month,d))return;
       var ac=acctForPay(x.pay||'bank');
       if(ac&&ac.type!=='card')up+=cents(x.amt);
     }
@@ -2339,6 +2343,8 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     h+=quickForm();
     h+='<section class="hcard" role="link" tabindex="0" data-action="tab" data-tab="banking" aria-label="Open banking"><div class="hcard-h"><h2>Accounts</h2><span class="go">Open &#8250;</span></div>'+
       homeAccounts()+'</section>';
+    var ar=activityRows(month),ti=0,to=0;ar.forEach(function(x){if(x.neutral)return;if(x.c>0)ti+=x.c;else to-=x.c});
+    h+='<button type="button" class="txbar" data-action="tx-open" aria-label="Open all transactions for '+esc(monthLong(month))+'"><span class="txb-t">Transactions</span><span class="txb-a"><b class="bk-pos">+'+fmt(ti/100)+'</b><b class="bk-neg">&minus;'+fmt(to/100)+'</b></span><span class="go" aria-hidden="true">&#8250;</span></button>';
     var sd=spendingData();
     h+='<section class="hcard nolink" aria-label="Spending"><div class="hcard-h" role="link" tabindex="0" data-action="tab" data-tab="budget"><h2>Spending &middot; '+esc(monthLong(month))+'</h2><span class="go">Open &#8250;</span></div>'+
       (sd.total?'<div class="donut-wrap">'+donutSvg(sd)+'</div>'+spendList(sd):'<p class="empty">Nothing to show yet for this month.</p>'+spendList(sd))+'</section>';
@@ -2707,11 +2713,14 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
       if(!d)return;
       var n0=out.length;add(cd,d,c,true);if(!cashPay)add(fr,d,c,false);for(var z=n0;z<out.length;z++)out[z].ts=q.ts||0;
     });
-    S.bills.forEach(function(b){var d=billDay(b,ym);if(d&&!paidEarly(b,ym,d))add(acctForPay(b.pay||'bank'),d,cents(bAmt(b,ym)),false)});
-    S.subs.forEach(function(u){var d=subDay(u,ym);if(d&&!paidEarly(u,ym,d))add(acctForPay(u.pay||'bank'),d,cents(bAmt(u,ym)),false)});
+    /* a bill that is past due but not ticked has not been paid yet: it comes out when you tick it, and still counts against the end of the month */
+    function dueDay(x,ym,d){return overdueUnpaid(x,ym,d)?new Date(parts(ym).y,parts(ym).m,0).getDate():d}
+    S.bills.forEach(function(b){var d=billDay(b,ym);if(d&&!paidEarly(b,ym,d))add(acctForPay(b.pay||'bank'),dueDay(b,ym,d),cents(bAmt(b,ym)),false)});
+    S.subs.forEach(function(u){var d=subDay(u,ym);if(d&&!paidEarly(u,ym,d))add(acctForPay(u.pay||'bank'),dueDay(u,ym,d),cents(bAmt(u,ym)),false)});
     return out;
   }
   /* a bill ticked as paid before its due date leaves the account on the day it was ticked, not on the due date */
+  function overdueUnpaid(x,ym,d){return ym===ymNow()&&!(x.paid&&x.paid[ym])&&ym+'-'+pad2(d)<=todayISO()}
   function paidEarly(x,ym,d){
     var v=x.paid&&x.paid[ym];
     return !!(v&&typeof v==='object'&&v.d&&v.d<ym+'-'+pad2(d));
@@ -4634,7 +4643,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.02-zr</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.02-zs</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
