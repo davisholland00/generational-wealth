@@ -49,7 +49,7 @@
   --line:#D3DAE1;
   --accent:#1F4FD8;
   --accent-ink:#FFFFFF;
-  --in:#0B7358;
+  --in:#0B7358;--soon:#A86A00;--soon-soft:#FBEFC8;
   --in-soft:#CFE6DE;
   --out:#B4372F;
   --warn-soft:#F3D9D6;
@@ -61,13 +61,13 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0F151C;--surface:#18212B;--ink:#E7ECF1;--muted:#93A0AE;--line:#2A3542;
-    --accent:#7EA2FF;--accent-ink:#0B1220;--in:#4CC9A0;--in-soft:#1C3A33;--out:#FF8A7E;--warn-soft:#3A2322;--c1:#7EA2FF;--c2:#4CC9A0;--c3:#F2A04A;--c4:#FF8A7E;--c5:#B596F5;--c6:#4FC3D6;--c7:#F27DBB;--c8:#9AA7B5;--tint:36%;
+    --accent:#7EA2FF;--accent-ink:#0B1220;--in:#4CC9A0;--soon:#F2C14E;--soon-soft:#3A3016;--in-soft:#1C3A33;--out:#FF8A7E;--warn-soft:#3A2322;--c1:#7EA2FF;--c2:#4CC9A0;--c3:#F2A04A;--c4:#FF8A7E;--c5:#B596F5;--c6:#4FC3D6;--c7:#F27DBB;--c8:#9AA7B5;--tint:36%;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0F151C;--surface:#18212B;--ink:#E7ECF1;--muted:#93A0AE;--line:#2A3542;
-  --accent:#7EA2FF;--accent-ink:#0B1220;--in:#4CC9A0;--in-soft:#1C3A33;--out:#FF8A7E;--warn-soft:#3A2322;--c1:#7EA2FF;--c2:#4CC9A0;--c3:#F2A04A;--c4:#FF8A7E;--c5:#B596F5;--c6:#4FC3D6;--c7:#F27DBB;--c8:#9AA7B5;--tint:36%;
+  --accent:#7EA2FF;--accent-ink:#0B1220;--in:#4CC9A0;--soon:#F2C14E;--soon-soft:#3A3016;--in-soft:#1C3A33;--out:#FF8A7E;--warn-soft:#3A2322;--c1:#7EA2FF;--c2:#4CC9A0;--c3:#F2A04A;--c4:#FF8A7E;--c5:#B596F5;--c6:#4FC3D6;--c7:#F27DBB;--c8:#9AA7B5;--tint:36%;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -354,7 +354,7 @@ ul.next li.paid .nn,ul.next li.paid .nd,ul.next li.paid .num{color:var(--muted);
 /* Looks: dark "glass" styles (Night Garden, Ocean, Sunset, Midnight) and light styles (Sunrise, Meadow). Each paints art behind the top of the page. */
 :root[data-glass]{
   --bg:var(--lk-bg);--surface:rgba(255,255,255,.07);--ink:#EEF2EE;--muted:#A9B6AE;--line:rgba(255,255,255,.14);
-  --accent:#6C98FF;--accent-ink:#06101F;--in:#4CC9A0;--in-soft:rgba(76,201,160,.18);--out:#FF8A7E;--warn-soft:rgba(255,138,126,.18);
+  --accent:#6C98FF;--accent-ink:#06101F;--in:#4CC9A0;--soon:#F2C14E;--soon-soft:#3A3016;--in-soft:rgba(76,201,160,.18);--out:#FF8A7E;--warn-soft:rgba(255,138,126,.18);
   --c1:#7EA2FF;--c2:#4CC9A0;--c3:#F2A04A;--c4:#FF8A7E;--c5:#B596F5;--c6:#4FC3D6;--c7:#F27DBB;--c8:#9AA7B5;--tint:36%;color-scheme:dark;
 }
 :root[data-look="deer"]{--lk-bg:#0A120B;--lk-sheet:#101A12;--lk-tab:rgba(8,16,10,.9);--lk-glow:transparent;--accent:#E3B65A;--accent-ink:#241800;--look-art:linear-gradient(rgba(4,9,6,.40),rgba(4,9,6,.40)),var(--deer-img,linear-gradient(160deg,#4a5a2a,#0a120b))}
@@ -459,7 +459,12 @@ li.dim .nm,li.dim .amt{color:var(--muted)}
 .txrow .tn{font-weight:600;overflow-wrap:anywhere}
 .txrow .ts{font-size:12px;color:var(--muted)}
 .txrow .ta{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
-.txrow .ta.in{color:var(--in,#0a7a4b)}
+.txrow .ta.in{color:var(--in)}
+.txrow .ta.out{color:var(--out)}
+.txrow .ta.soon{color:var(--soon)}
+.txrow.fut{border-left:3px solid var(--soon);padding-left:10px;background:linear-gradient(90deg,var(--soon-soft),transparent 60%)}
+.txrow.fut .tbadge{color:var(--soon);border-color:var(--soon)}
+.txrow.done .tn,.txrow.done .ta{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
 .txrow .tbadge{font-size:11px;border:1px solid var(--line);border-radius:8px;padding:1px 6px;margin-left:6px;color:var(--muted);font-weight:600}
 .subhead{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:14px 0 6px}
 .fold{grid-column:1 / -1;border:1px solid var(--line);border-radius:12px;padding:0 14px}
@@ -3006,7 +3011,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     var tin=0,tout=0;rows.forEach(function(x){if(x.neutral)return;if(x.c>0)tin+=x.c;else tout-=x.c});
     $('#txSum').innerHTML='<div><span>In</span><b class="bk-pos">+'+fmt(tin/100)+'</b></div><div><span>Out</span><b class="bk-neg">&minus;'+fmt(tout/100)+'</b></div><div><span>Net</span><b class="'+(tin-tout<0?'bk-neg':'bk-pos')+'">'+(tin-tout<0?'&minus;':'')+fmt(Math.abs(tin-tout)/100)+'</b></div>';
     if(!rows.length){$('#txBody').innerHTML='<p class="empty">'+(all.length?'Nothing matches that.':'Nothing for '+esc(monthLong(ym))+' yet.')+'</p>';return}
-    var groups=[['Transactions',rows.filter(function(x){return x.del})],['Paychecks, bills and transfers',rows.filter(function(x){return !x.del&&x.kind!=='sub'})],['Subscriptions',rows.filter(function(x){return x.kind==='sub'})]];
+    var groups=[['Transactions',rows.filter(function(x){return x.del})],['Paychecks',rows.filter(function(x){return x.t==='pay'})],['Bills',rows.filter(function(x){return x.t==='bill'&&x.kind==='bill'})],['Subscriptions',rows.filter(function(x){return x.kind==='sub'})],['Transfers',rows.filter(function(x){return x.t==='xfer'})],['Charity donations',rows.filter(function(x){return !x.del&&x.t==='out'})]];
     var h='';
     groups.forEach(function(g){
       if(!g[1].length)return;
@@ -3017,10 +3022,12 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
         if(x.iso!==cur){cur=x.iso;var dt=parseISO(cur);h+='<div class="txday"><span>'+esc(dt?dt.toLocaleDateString(LC(),{weekday:'short',month:'short',day:'numeric'}):cur)+'</span>'+(cur===td?'<span>Today</span>':'')+'</div>'}
         var upc=x.iso>td&&!x.paid&&x.t!=='out'||(x.iso>td&&x.t==='bill'&&!x.paid),badge=x.t==='bill'?(x.paid?'Paid':(upc?'Upcoming':'Due')):(x.iso>td&&x.t!=='bill'?'Upcoming':'');
         var amt=(x.neutral?'':(x.c<0?'\u2212':'+'))+fmt(Math.abs(x.c)/100);
-        var inner='<span class="tm"><span class="tn">'+esc(x.n)+(badge?'<span class="tbadge">'+badge+'</span>':'')+'</span><span class="ts">'+esc(x.s)+'</span></span><span class="ta '+(x.neutral?'':(x.c>0?'in':''))+'">'+amt+'</span>';
-        if(x.del)h+='<div class="txrow">'+inner+'<button class="btn danger small" data-action="txn-del" data-id="'+x.id+'" aria-label="Delete transaction">Delete</button></div>';
-        else if(x.eid)h+='<div class="txrow"><button class="main" style="all:unset;display:flex;flex:1;gap:10px;align-items:center;cursor:pointer" data-action="edit" data-kind="'+x.kind+'" data-id="'+x.eid+'">'+inner+'</button></div>';
-        else h+='<div class="txrow">'+inner+'</div>';
+        var fut=x.iso>td&&!x.paid,cls=(x.neutral?'':(x.c<0?' out':(fut?' soon':' in')))+(fut?' fut':'')+(x.paid&&x.t==='bill'?' done':'');
+        var inner='<span class="tm"><span class="tn">'+esc(x.n)+(badge?'<span class="tbadge">'+badge+'</span>':'')+'</span><span class="ts">'+esc(x.s)+'</span></span><span class="ta'+cls+'">'+amt+'</span>';
+        var rc='txrow'+(fut?' fut':'')+(x.paid&&x.t==='bill'?' done':'');
+        if(x.del)h+='<div class="'+rc+'">'+inner+'<button class="btn danger small" data-action="txn-del" data-id="'+x.id+'" aria-label="Delete transaction">Delete</button></div>';
+        else if(x.eid)h+='<div class="'+rc+'"><button class="main" style="all:unset;display:flex;flex:1;gap:10px;align-items:center;cursor:pointer" data-action="edit" data-kind="'+x.kind+'" data-id="'+x.eid+'">'+inner+'</button></div>';
+        else h+='<div class="'+rc+'">'+inner+'</div>';
       });
     });
     $('#txBody').innerHTML=h;
@@ -4651,7 +4658,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.02-zt</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.03-zu</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
