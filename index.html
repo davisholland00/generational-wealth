@@ -2721,8 +2721,10 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     });
     /* a bill that is past due but not ticked has not been paid yet: it comes out when you tick it, and still counts against the end of the month */
     function dueDay(x,ym,d){return overdueUnpaid(x,ym,d)?new Date(parts(ym).y,parts(ym).m,0).getDate():d}
-    S.bills.forEach(function(b){var d=billDay(b,ym);if(d&&!paidEarly(b,ym,d))add(acctForPay(b.pay||'bank'),dueDay(b,ym,d),cents(bAmt(b,ym)),false)});
-    S.subs.forEach(function(u){var d=subDay(u,ym);if(d&&!paidEarly(u,ym,d))add(acctForPay(u.pay||'bank'),dueDay(u,ym,d),cents(bAmt(u,ym)),false)});
+    /* in earlier months only ticked bills have left the account; the ones never ticked are not counted */
+    function skipOld(x,ym){return ym<ymNow()&&!(x.paid&&x.paid[ym])}
+    S.bills.forEach(function(b){var d=billDay(b,ym);if(d&&!skipOld(b,ym)&&!paidEarly(b,ym,d))add(acctForPay(b.pay||'bank'),dueDay(b,ym,d),cents(bAmt(b,ym)),false)});
+    S.subs.forEach(function(u){var d=subDay(u,ym);if(d&&!skipOld(u,ym)&&!paidEarly(u,ym,d))add(acctForPay(u.pay||'bank'),dueDay(u,ym,d),cents(bAmt(u,ym)),false)});
     return out;
   }
   /* a bill ticked as paid before its due date leaves the account on the day it was ticked, not on the due date */
@@ -2736,7 +2738,14 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
   function tickPaid(x,kind){
     x.paid=x.paid||{};
     var ac0=acctForPay(x.pay||'bank'),amtT=fmt(cents(bAmt(x,month))/100),nm0=ac0?(ac0.name||ACCT_TYPES[ac0.type]):'';
-    if(x.paid[month]){delete x.paid[month];render();persist();if(ac0)toast('Put '+amtT+' back on '+nm0+'.');return}
+    if(x.paid[month]){
+      var pv=x.paid[month],dd0=kind==='sub'?subDay(x,month):billDay(x,month);
+      /* if the charge from this tick is already inside a balance you typed in afterwards, unticking has to give the money back */
+      if(ac0&&pv&&typeof pv==='object'&&pv.d&&(pv.take===true||(dd0&&paidEarly(x,month,dd0)))){
+        var cnt=pv.d>asofOf(ac0)||(pv.d===asofOf(ac0)&&(pv.ts||0)>(ac0.upd||0));
+        if(!cnt){x.rev=x.rev||{};x.rev[month]=(x.rev[month]||[]).concat([{d:todayISO(),ts:Date.now()}])}
+      }
+      delete x.paid[month];render();persist();if(ac0)toast('Put '+amtT+' back on '+nm0+'.');return}
     var d=kind==='sub'?subDay(x,month):billDay(x,month),ac=ac0;
     var due=d?month+'-'+pad2(d):'';
     var now={d:todayISO(),ts:Date.now()};
@@ -2772,6 +2781,15 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
       });
     }
     scan(S.bills,billDay);scan(S.subs,subDay);
+    /* money given back by unticking after a typed balance already included the charge */
+    [S.bills,S.subs].forEach(function(list){list.forEach(function(x){
+      if(!x.rev)return;
+      Object.keys(x.rev).forEach(function(ym){
+        var ac=acctForPay(x.pay||'bank');if(!ac||!Array.isArray(x.rev[ym]))return;
+        var c=cents(bAmt(x,ym));
+        x.rev[ym].forEach(function(v){if(v&&v.d)out.push({a:ac.id,iso:v.d,ts:v.ts||0,c:ac.type==='card'?-c:c})});
+      });
+    })});
     return out;
   }
   var flowCache={};
@@ -4670,7 +4688,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.03-zw</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.04-zx</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
