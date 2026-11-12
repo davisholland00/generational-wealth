@@ -1169,7 +1169,7 @@ ul.list>li.swing>*{transition:none!important}
       <div class="field"><label for="adAmt">Amount</label><input id="adAmt" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
       <div class="field"><label for="adCat">What was it for?</label><select id="adCat"></select></div>
       <div class="field"><label for="adDate">Date</label><input id="adDate" type="date"></div>
-      <div class="field"><label for="adNote">Note (optional)</label><input id="adNote" maxlength="60" autocomplete="off" placeholder="Pizzb with friends"></div>
+      <div class="field"><label for="adNote">Note (optional)</label><input id="adNote" maxlength="60" autocomplete="off" placeholder="Pizzc with friends"></div>
       <p id="adMsg" class="auth-msg" role="status"></p>
       <button type="submit" class="btn primary">Add spending</button>
     </form>
@@ -1500,7 +1500,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
   function normTithe(t){
     t=t||{};
     var p=parseFloat(t.pct);
-    return {mode:t.mode==='fixed'?'fixed':(t.mode==='manual'?'manual':'percent'),log:Array.isArray(t.log)?t.log.filter(function(x){return x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')&&isFinite(parseFloat(x.amt))&&parseFloat(x.amt)>0}).map(function(x){return {id:String(x.id||uid()),date:x.date,amt:Math.round(parseFloat(x.amt)*100)/100,ts:Number(x.ts)||0,a:x.a?String(x.a):'',note:String(x.note||'').slice(0,60)}}):[],amt:(isFinite(parseFloat(t.amt))&&parseFloat(t.amt)>=0)?parseFloat(t.amt):0,per:t.per==='month'?'month':'paycheck',on:t.on===true,pct:(isFinite(p)&&p>=0&&p<=100)?p:10,auto:t.auto===true,comm:t.comm!==false,pay:(typeof t.pay==='string'&&t.pay.slice(0,2)==='a:')?t.pay:(t.pay==='card'?'card':'bank'),paid:(t.paid&&typeof t.paid==='object')?t.paid:{},rev:(t.rev&&typeof t.rev==='object')?t.rev:{},ov:(t.ov&&typeof t.ov==='object')?t.ov:{}};
+    return {mode:t.mode==='fixed'?'fixed':(t.mode==='manual'?'manual':'percent'),log:Array.isArray(t.log)?t.log.filter(function(x){return x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')&&isFinite(parseFloat(x.amt))&&parseFloat(x.amt)>0}).map(function(x){return {id:String(x.id||uid()),date:x.date,amt:Math.round(parseFloat(x.amt)*100)/100,ts:Number(x.ts)||0,a:x.a?String(x.a):'',note:String(x.note||'').slice(0,60)}}):[],amt:(isFinite(parseFloat(t.amt))&&parseFloat(t.amt)>=0)?parseFloat(t.amt):0,per:t.per==='month'?'month':'paycheck',on:t.on===true,pct:(isFinite(p)&&p>=0&&p<=100)?p:10,auto:false,comm:t.comm!==false,pay:(typeof t.pay==='string'&&t.pay.slice(0,2)==='a:')?t.pay:(t.pay==='card'?'card':'bank'),paid:(t.paid&&typeof t.paid==='object')?t.paid:{},rev:(t.rev&&typeof t.rev==='object')?t.rev:{},ov:(t.ov&&typeof t.ov==='object')?t.ov:{}};
   }
   /* a paycheck can have its own amount "just this once" (r.ov keyed by date); all other paydays keep the usual amount */
   function payAmtC(r,ym,d){var k=ym+'-'+pad2(d),v=r.ov&&r.ov[k];return (v!==undefined&&v!==null&&isFinite(parseFloat(v)))?cents(v):cents(r.amt)}
@@ -1535,12 +1535,16 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
       else{var n=days.length,base=Math.floor(f/n),used=0;days.forEach(function(x,i){var v=i===n-1?f-used:base;used+=v;out.push({d:x.d,c:v})})}
       return keyed(out,ym);
     }
-    days.forEach(function(x){out.push({d:x.d,c:pctCents(x.c,T.pct)})});
+    /* a paycheck and a commission on the same day are added together and give one donation, so there is one box to tick */
+    var base=days.map(function(x){return {d:x.d,c:x.c}});
     if(T.comm)S.commissions.forEach(function(c0){
       if(!commActive(c0,ym))return;
       var hit=commDayOf(c0,ym);if(!hit)return;
-      out.push({d:hit.day,c:pctCents(cents(commAmt(c0,ym)),T.pct)});
+      base.push({d:hit.day,c:cents(commAmt(c0,ym))});
     });
+    var byDay={},order=[];
+    base.forEach(function(x){if(byDay[x.d]===undefined){byDay[x.d]=0;order.push(x.d)}byDay[x.d]+=x.c});
+    order.forEach(function(d){out.push({d:d,c:pctCents(byDay[d],T.pct)})});
     return keyed(out,ym);
   }
   /* each paycheck's share is worked out on its own and rounded UP to the next whole dollar */
@@ -3894,7 +3898,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     var md=$('#fTitheMode').value,fx=md==='fixed',mn=md==='manual';
     $('#tithePctWrap').hidden=md!=='percent';$('#titheCommWrap').hidden=md!=='percent';
     $('#titheAmtWrap').hidden=!fx;$('#tithePerWrap').hidden=!fx;$('#titheManualWrap').hidden=!mn;
-    $('#titheAutoWrap').hidden=mn;$('#titheMore').hidden=mn;$('#titheOvWrap').hidden=mn||!S.tithe.on;
+    $('#titheAutoWrap').hidden=true;$('#titheMore').hidden=mn;$('#titheOvWrap').hidden=mn||!S.tithe.on;
     if(mn)drawTitheLog();
     updateTithePreview();
   }
@@ -3911,8 +3915,9 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     var pct=parseFloat($('#fTithePct').value.replace(/[%\s]/g,''));
     if(!isFinite(pct)||pct<0||pct>100){el.textContent='';return}
     var base=t.inc+($('#fTitheComm').checked?t.comm:0);
-    var tsum=0,cnt=0;S.income.forEach(function(r){payDates(r,month).forEach(function(d){tsum+=pctCents(payAmtC(r,month,d),pct);cnt++})});
-    if($('#fTitheComm').checked)S.commissions.forEach(function(c0){if(commActive(c0,month)&&commDayOf(c0,month)){tsum+=pctCents(cents(commAmt(c0,month)),pct);cnt++}});
+    var tsum=0,cnt=0,bd={};S.income.forEach(function(r){payDates(r,month).forEach(function(d){bd[d]=(bd[d]||0)+payAmtC(r,month,d)})});
+    if($('#fTitheComm').checked)S.commissions.forEach(function(c0){var h=commActive(c0,month)&&commDayOf(c0,month);if(h)bd[h.day]=(bd[h.day]||0)+cents(commAmt(c0,month))});
+    Object.keys(bd).forEach(function(d){tsum+=pctCents(bd[d],pct);cnt++});
     el.textContent='For '+monthLong(month)+': '+fmt(tsum/100)+' across '+cnt+(cnt===1?' paycheck':' paychecks')+', each rounded up to the next dollar.';
   }
   function drawTitheLog(){
@@ -3984,7 +3989,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
         $('#fTitheOn').checked=true;
       }
     }
-    S.tithe.on=$('#fTitheOn').checked;S.tithe.auto=tmode==='manual'?false:$('#fTitheAuto').checked;
+    S.tithe.on=$('#fTitheOn').checked;S.tithe.auto=false;
     if(S.tithe.auto&&S.tithe.mode==='fixed')S.tithe.per='paycheck';
     S.tithe.pay=$('#fTithePay').value||'bank';
     if(tmode!=='manual'){
@@ -4846,7 +4851,7 @@ var XL_DATA={"es": {"+ Add": "+ A√±adir", "+ New category...": "+ Nueva categor√
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.12-zzb</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.12-zzc</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
