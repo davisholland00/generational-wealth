@@ -1491,7 +1491,7 @@ var XL_DATA={"es": {"+ Add": "+ AÃ±adir", "+ New category...": "+ Nueva categorÃ
   function normTithe(t){
     t=t||{};
     var p=parseFloat(t.pct);
-    return {mode:t.mode==='fixed'?'fixed':(t.mode==='manual'?'manual':'percent'),log:Array.isArray(t.log)?t.log.filter(function(x){return x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')&&isFinite(parseFloat(x.amt))&&parseFloat(x.amt)>0}).map(function(x){return {id:String(x.id||uid()),date:x.date,amt:Math.round(parseFloat(x.amt)*100)/100}}):[],amt:(isFinite(parseFloat(t.amt))&&parseFloat(t.amt)>=0)?parseFloat(t.amt):0,per:t.per==='month'?'month':'paycheck',on:t.on===true,pct:(isFinite(p)&&p>=0&&p<=100)?p:10,auto:t.auto===true,comm:t.comm!==false,pay:(typeof t.pay==='string'&&t.pay.slice(0,2)==='a:')?t.pay:(t.pay==='card'?'card':'bank'),paid:(t.paid&&typeof t.paid==='object')?t.paid:{}};
+    return {mode:t.mode==='fixed'?'fixed':(t.mode==='manual'?'manual':'percent'),log:Array.isArray(t.log)?t.log.filter(function(x){return x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')&&isFinite(parseFloat(x.amt))&&parseFloat(x.amt)>0}).map(function(x){return {id:String(x.id||uid()),date:x.date,amt:Math.round(parseFloat(x.amt)*100)/100,ts:Number(x.ts)||0}}):[],amt:(isFinite(parseFloat(t.amt))&&parseFloat(t.amt)>=0)?parseFloat(t.amt):0,per:t.per==='month'?'month':'paycheck',on:t.on===true,pct:(isFinite(p)&&p>=0&&p<=100)?p:10,auto:t.auto===true,comm:t.comm!==false,pay:(typeof t.pay==='string'&&t.pay.slice(0,2)==='a:')?t.pay:(t.pay==='card'?'card':'bank'),paid:(t.paid&&typeof t.paid==='object')?t.paid:{}};
   }
   /* a paycheck can have its own amount "just this once" (r.ov keyed by date); all other paydays keep the usual amount */
   function payAmtC(r,ym,d){var k=ym+'-'+pad2(d),v=r.ov&&r.ov[k];return (v!==undefined&&v!==null&&isFinite(parseFloat(v)))?cents(v):cents(r.amt)}
@@ -1504,7 +1504,7 @@ var XL_DATA={"es": {"+ Add": "+ AÃ±adir", "+ New category...": "+ Nueva categorÃ
   /* charity donations are taken out on each payday (never all at the start of the month) */
   function titheSchedule(ym){
     var out=[],T=S.tithe;if(!T.on)return out;
-    if(T.mode==='manual'){S.tithe.log.forEach(function(x){if((x.date||'').slice(0,7)===ym)out.push({d:parseInt(x.date.slice(8,10),10),c:cents(x.amt)})});out.sort(function(a,b){return a.d-b.d});return out}
+    if(T.mode==='manual'){S.tithe.log.forEach(function(x){if((x.date||'').slice(0,7)===ym)out.push({d:parseInt(x.date.slice(8,10),10),c:cents(x.amt),ts:x.ts||0})});out.sort(function(a,b){return a.d-b.d});return out}
     var days=[];
     S.income.forEach(function(r){payDates(r,ym).forEach(function(d){days.push({d:d,c:payAmtC(r,ym,d)})})});
     days.sort(function(a,b){return a.d-b.d});
@@ -2693,10 +2693,10 @@ var XL_DATA={"es": {"+ Add": "+ AÃ±adir", "+ New category...": "+ Nueva categorÃ
   /* every money movement of a month, as {a: account id, d: day, c: signed change to that account in cents} */
   function flowItems(ym){
     var out=[];
-    function add(acct,d,amtC,income){
+    function add(acct,d,amtC,income,ts){
       if(!acct||!d)return;
       var delta=acct.type==='card'?(income?-amtC:amtC):(income?amtC:-amtC);
-      out.push({a:acct.id,d:d,c:delta});
+      out.push(ts?{a:acct.id,d:d,c:delta,ts:ts}:{a:acct.id,d:d,c:delta});
     }
     var tAcct=acctForPay(S.tithe.pay)||firstAcct('checking');
     S.income.forEach(function(r){
@@ -2709,7 +2709,7 @@ var XL_DATA={"es": {"+ Add": "+ AÃ±adir", "+ New category...": "+ Nueva categorÃ
       var c=cents(commAmt(c0,ym)),inc=hit.inc||S.income.filter(function(x){return x.id===c0.inc})[0];
       add(acctForDep(inc&&inc.dep),hit.day,c,true);
     });
-    titheSchedule(ym).forEach(function(x){if(x.c>0)add(tAcct,x.d,x.c,false)});
+    titheSchedule(ym).forEach(function(x){if(x.c>0)add(tAcct,x.d,x.c,false,x.ts)});
     S.payments.forEach(function(q){
       var cd=acctById(q.card),fr=acctById(q.from),qd=parseISO(q.date),c=cents(q.amt),cashPay=(q.from==='cash');
       if(!cd||(!fr&&!cashPay)||!qd||c<=0)return;
@@ -3794,7 +3794,11 @@ var XL_DATA={"es": {"+ Add": "+ AÃ±adir", "+ New category...": "+ Nueva categorÃ
     var d=$('#fTitheDDate').value,a=parseAmt($('#fTitheDAmt').value);
     if(!d||!isFinite(a)||a<=0){$('#titheErr').textContent='Enter the date and the amount you gave.';return}
     $('#titheErr').textContent='';
-    S.tithe.log.push({id:uid(),date:d,amt:Math.round(a*100)/100});
+    S.tithe.log.push({id:uid(),date:d,amt:Math.round(a*100)/100,ts:Date.now()});
+    /* a donation you enter always counts: switch tracking on and to "enter it myself" right away */
+    S.tithe.on=true;S.tithe.mode='manual';S.tithe.auto=false;
+    if($('#fTithePay').value)S.tithe.pay=$('#fTithePay').value;
+    $('#fTitheOn').checked=true;$('#fTitheMode').value='manual';
     $('#fTitheDAmt').value='';drawTitheLog();render();persist();
   }
   function delTitheLog(id){
@@ -4688,7 +4692,7 @@ var XL_DATA={"es": {"+ Add": "+ AÃ±adir", "+ New category...": "+ Nueva categorÃ
     $('#meScrim').hidden=false;
   }
   function closeMe(){$('#meScrim').hidden=true}
-  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.04-zx</p>'}
+  function meMenuNote(){return '<p class="legal-note" style="margin:0;text-align:center">&copy; 2026 '+OWNER+'. Household Ledger&trade;. All rights reserved.<br>Version 2026.11.12-zy</p>'}
   function meMenuLinks(){
     return '<button type="button" data-action="my-account">Account settings, app lock and data</button>'+
       '<button type="button" data-action="legal-privacy">Privacy Policy</button>'+
